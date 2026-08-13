@@ -1,0 +1,1671 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+<title>JARVIS</title>
+<style>
+  :root{
+    --accent:#1fc8ff;
+    --accent2:#8b5cf6;
+    --bg:#04070d;
+    --bg2:#070c16;
+    --panel:rgba(13,20,34,.78);
+    --panel-solid:#0b1220;
+    --border:rgba(31,200,255,.25);
+    --text:#e6f1ff;
+    --muted:#7a8ba3;
+    --danger:#ff5547;
+    --ok:#10b981;
+    --font-mono:ui-monospace,SFMono-Regular,Consolas,"Liberation Mono",Menlo,monospace;
+    --font-sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;height:100%;background:var(--bg);color:var(--text);font-family:var(--font-sans);overflow-x:hidden;}
+  body{
+    background:
+      radial-gradient(ellipse 80% 50% at 50% -10%, rgba(31,200,255,.14), transparent),
+      radial-gradient(ellipse 60% 40% at 90% 100%, rgba(139,92,246,.10), transparent),
+      var(--bg);
+    min-height:100vh;
+  }
+  .hidden{display:none !important;}
+  button{font-family:inherit;cursor:pointer;}
+  input,select,textarea{font-family:inherit;}
+  ::-webkit-scrollbar{width:8px;height:8px;}
+  ::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px;}
+
+  /* ───────── BOOT ───────── */
+  #boot{
+    position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    background:var(--bg);z-index:200;transition:opacity .6s ease;gap:22px;
+  }
+  #boot.fade-out{opacity:0;}
+  .boot-title{
+    font-family:var(--font-mono);font-weight:700;font-size:clamp(2.4rem,10vw,5.5rem);letter-spacing:.15em;
+    background:linear-gradient(90deg,var(--accent),var(--accent2));-webkit-background-clip:text;background-clip:text;color:transparent;
+    filter:drop-shadow(0 0 30px rgba(31,200,255,.35));
+  }
+  .boot-hr{width:min(420px,70vw);height:2px;background:linear-gradient(90deg,transparent,var(--accent),var(--accent2),transparent);}
+  .boot-sync{font-family:var(--font-mono);letter-spacing:.25em;color:var(--accent);font-size:.85rem;animation:blink 1.1s steps(2) infinite;}
+  .boot-version{font-family:var(--font-mono);color:var(--muted);font-size:.75rem;letter-spacing:.2em;}
+  @keyframes blink{50%{opacity:.15;}}
+
+  /* ───────── ACTIVATION ───────── */
+  #activation{
+    position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:28px;
+    background:var(--bg);z-index:190;
+  }
+  .act-title{
+    font-family:var(--font-mono);font-weight:700;font-size:clamp(2.2rem,9vw,4.5rem);letter-spacing:.15em;
+    background:linear-gradient(90deg,var(--accent),var(--accent2));-webkit-background-clip:text;background-clip:text;color:transparent;
+    filter:drop-shadow(0 0 30px rgba(31,200,255,.3));
+  }
+  #btnActivate{
+    background:linear-gradient(90deg,var(--accent),var(--accent2));border:none;color:#04121a;font-weight:700;
+    padding:16px 38px;border-radius:999px;font-family:var(--font-mono);font-size:1rem;letter-spacing:.1em;
+    box-shadow:0 0 40px rgba(31,200,255,.35);transition:transform .15s ease,box-shadow .15s ease;
+  }
+  #btnActivate:hover{transform:scale(1.04);box-shadow:0 0 55px rgba(31,200,255,.5);}
+  #btnActivate:active{transform:scale(.98);}
+  .act-hint{font-family:var(--font-mono);color:var(--muted);font-size:.75rem;letter-spacing:.3em;}
+
+  /* ───────── APP SHELL ───────── */
+  #app{min-height:100vh;display:flex;flex-direction:column;}
+  #topbar{
+    display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
+    padding:12px 18px;border-bottom:1px solid var(--border);background:rgba(6,10,18,.7);backdrop-filter:blur(10px);
+    position:sticky;top:0;z-index:50;
+  }
+  .topbar-left{font-family:var(--font-mono);font-weight:700;letter-spacing:.15em;display:flex;align-items:center;gap:8px;}
+  .badge-online{color:var(--ok);font-size:.7rem;animation:blink 2s steps(2) infinite;}
+  .topbar-controls{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+  #apiKeyInput{
+    background:var(--panel-solid);border:1px solid var(--border);color:var(--text);padding:8px 10px;border-radius:8px;
+    width:220px;font-size:.8rem;
+  }
+  #modelSelect{
+    background:var(--panel-solid);border:1px solid var(--border);color:var(--text);padding:8px 10px;border-radius:8px;font-size:.8rem;
+  }
+  .iconbtn{
+    background:var(--panel-solid);border:1px solid var(--border);color:var(--text);width:36px;height:36px;border-radius:8px;
+    display:flex;align-items:center;justify-content:center;font-size:1rem;
+  }
+  .iconbtn:hover{border-color:var(--accent);color:var(--accent);}
+  #actionBadge{
+    background:var(--danger);color:#fff;font-size:.7rem;font-weight:700;padding:2px 7px;border-radius:999px;font-family:var(--font-mono);
+  }
+
+  /* ───────── TABS ───────── */
+  #tabs{display:flex;gap:4px;padding:8px 14px;overflow-x:auto;border-bottom:1px solid var(--border);background:rgba(6,10,18,.4);}
+  #tabs button{
+    background:transparent;border:1px solid transparent;color:var(--muted);padding:8px 14px;border-radius:8px;
+    font-family:var(--font-mono);font-size:.72rem;letter-spacing:.1em;white-space:nowrap;
+  }
+  #tabs button.active{background:var(--panel);border-color:var(--border);color:var(--accent);}
+  #tabs button:hover{color:var(--text);}
+
+  main{flex:1;padding:20px;max-width:1100px;margin:0 auto;width:100%;}
+  .tabpanel{display:none;animation:fadein .35s ease;}
+  .tabpanel.active{display:block;}
+  @keyframes fadein{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
+
+  /* ───────── ASSISTANT TAB / ORB ───────── */
+  #orbWrap{display:flex;justify-content:center;padding:26px 0 10px;}
+  #orb{width:180px;height:180px;position:relative;cursor:pointer;flex-shrink:0;}
+  #orb .ring{position:absolute;inset:0;border-radius:50%;border:2px solid var(--accent);opacity:0;}
+  #orb .core{
+    position:absolute;inset:22px;border-radius:50%;
+    background:radial-gradient(circle at 35% 30%,#d8f3ff,var(--accent) 45%,var(--accent2) 100%);
+    box-shadow:0 0 60px rgba(31,200,255,.55),0 0 100px rgba(139,92,246,.25);
+    animation:idlePulse 3s ease-in-out infinite;
+  }
+  #orb.listening .ring{animation:ringWave 1.6s ease-out infinite;}
+  #orb.listening .ring:nth-child(2){animation-delay:.5s;}
+  #orb.listening .ring:nth-child(3){animation-delay:1s;}
+  #orb.thinking .core{animation:thinkPulse .6s ease-in-out infinite;}
+  #orb.speaking .core{animation:speakPulse 1.1s ease-in-out infinite;}
+  @keyframes idlePulse{0%,100%{transform:scale(1);}50%{transform:scale(1.045);}}
+  @keyframes thinkPulse{0%,100%{transform:scale(1);}50%{transform:scale(1.12);}}
+  @keyframes speakPulse{0%,100%{transform:scale(1);opacity:1;}50%{transform:scale(1.06);opacity:.88;}}
+  @keyframes ringWave{0%{transform:scale(.55);opacity:.75;}100%{transform:scale(1.7);opacity:0;}}
+
+  #assistantName{text-align:center;font-family:var(--font-mono);letter-spacing:.3em;font-weight:700;font-size:1.3rem;margin-top:8px;
+    background:linear-gradient(90deg,var(--accent),var(--accent2));-webkit-background-clip:text;background-clip:text;color:transparent;}
+  #youSaid,#hisSaid{text-align:center;max-width:640px;margin:10px auto 0;font-size:.95rem;line-height:1.5;min-height:1.4em;}
+  #youSaid{color:var(--muted);}
+  #hisSaid{color:var(--text);font-weight:500;}
+  #status{text-align:center;font-family:var(--font-mono);font-size:.7rem;letter-spacing:.2em;color:var(--accent);margin-top:14px;text-transform:uppercase;}
+  #inputRow{display:flex;gap:8px;max-width:560px;margin:22px auto 0;align-items:center;}
+  #textInput{flex:1;background:var(--panel-solid);border:1px solid var(--border);color:var(--text);padding:12px 14px;border-radius:10px;font-size:.9rem;}
+  #textInput:focus{outline:none;border-color:var(--accent);}
+  #btnMic,#btnStop{background:var(--panel-solid);border:1px solid var(--border);color:var(--text);width:44px;height:44px;border-radius:10px;font-size:1.1rem;}
+  #btnMic:hover,#btnStop:hover{border-color:var(--accent);}
+  #micWarning{max-width:560px;margin:14px auto 0;text-align:center;color:var(--danger);font-size:.8rem;}
+
+  /* ───────── PANEL / CARD SHARED ───────── */
+  .panel-topbar{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:14px;}
+  .panel-topbar h2{font-family:var(--font-mono);font-size:1rem;letter-spacing:.12em;margin:0;display:flex;align-items:center;gap:8px;}
+  .panel-topbar .sub{color:var(--muted);font-size:.75rem;font-weight:400;letter-spacing:0;}
+  .panel-topbar .stats{color:var(--muted);font-size:.78rem;font-family:var(--font-mono);display:flex;align-items:center;gap:8px;}
+  .card{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:16px;backdrop-filter:blur(8px);}
+  .offline-note{color:var(--danger);font-family:var(--font-mono);font-size:.78rem;padding:14px;border:1px dashed var(--danger);border-radius:10px;background:rgba(255,85,71,.06);}
+
+  /* ───────── SECOND BRAIN ───────── */
+  #graphContainer{width:100%;aspect-ratio:1000/540;background:radial-gradient(ellipse at 50% 50%,rgba(139,92,246,.06),transparent 70%);border:1px solid var(--border);border-radius:14px;overflow:hidden;}
+  #graphContainer svg{width:100%;height:100%;display:block;}
+  .core-pulse{animation:corePulse 2.4s ease-in-out infinite;}
+  .core-glow{animation:coreGlow 2.4s ease-in-out infinite;}
+  @keyframes corePulse{0%,100%{r:34;}50%{r:38;}}
+  @keyframes coreGlow{0%,100%{opacity:.55;}50%{opacity:.9;}}
+  .node-ring{animation:breathe 3s ease-in-out infinite;transform-origin:center;transform-box:fill-box;}
+  @keyframes breathe{0%,100%{opacity:.25;transform:scale(1);}50%{opacity:.65;transform:scale(1.12);}}
+  .edge-flow{stroke-dashoffset:0;animation:dashmove 2.2s linear infinite;}
+  @keyframes dashmove{to{stroke-dashoffset:-40;}}
+  .node-core.flash{animation:flashNode 1.4s ease-out;}
+  @keyframes flashNode{0%{filter:brightness(2.6);}100%{filter:brightness(1);}}
+  #graphLegend{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;margin-top:12px;font-size:.78rem;}
+  .legend-items{display:flex;flex-wrap:wrap;gap:12px;}
+  .legend-item{display:flex;align-items:center;gap:6px;color:var(--muted);}
+  .legend-item .dot{width:9px;height:9px;border-radius:50%;display:inline-block;}
+  .legend-ok{color:var(--ok);font-family:var(--font-mono);font-size:.72rem;}
+
+  /* ───────── AGENDA ───────── */
+  .agenda-day{margin-bottom:16px;}
+  .agenda-day h3{font-family:var(--font-mono);font-size:.78rem;letter-spacing:.15em;color:var(--accent);margin:0 0 8px;}
+  .agenda-event{display:flex;gap:12px;align-items:flex-start;padding:10px 0;border-bottom:1px solid var(--border);}
+  .agenda-event:last-child{border-bottom:none;}
+  .agenda-dot{width:10px;height:10px;border-radius:50%;margin-top:5px;flex-shrink:0;}
+  .agenda-time{font-family:var(--font-mono);color:var(--muted);font-size:.78rem;min-width:60px;}
+  .agenda-title{font-weight:600;font-size:.9rem;}
+  .agenda-loc{color:var(--muted);font-size:.78rem;}
+  .agenda-countdown{color:var(--accent);font-family:var(--font-mono);font-size:.72rem;margin-top:2px;}
+  .agenda-empty{color:var(--muted);font-size:.85rem;text-align:center;padding:20px;}
+
+  /* ───────── EMAILS ───────── */
+  .email-section{margin-bottom:18px;}
+  .email-section h3{font-family:var(--font-mono);font-size:.78rem;letter-spacing:.15em;margin:0 0 10px;display:flex;align-items:center;gap:8px;}
+  .email-item{display:flex;gap:10px;padding:10px;border-radius:10px;cursor:pointer;transition:background .15s;}
+  .email-item:hover{background:rgba(31,200,255,.06);}
+  .email-dot{width:9px;height:9px;border-radius:50%;margin-top:6px;flex-shrink:0;}
+  .email-from{font-weight:600;font-size:.85rem;}
+  .email-summary{font-size:.82rem;color:var(--text);}
+  .email-time{color:var(--muted);font-size:.72rem;font-family:var(--font-mono);}
+  .email-expand{display:none;color:var(--muted);font-size:.78rem;margin-top:6px;padding-top:6px;border-top:1px solid var(--border);}
+  .email-item.open .email-expand{display:block;}
+  #ruidoSection{cursor:pointer;}
+  #ruidoList{display:none;}
+  #ruidoList.open{display:block;}
+
+  /* ───────── NEWS ───────── */
+  .news-subject{margin-bottom:18px;}
+  .news-subject h3{font-family:var(--font-mono);font-size:.78rem;letter-spacing:.12em;color:var(--accent);margin:0 0 8px;}
+  .news-item{display:block;padding:8px 0;border-bottom:1px solid var(--border);color:var(--text);text-decoration:none;font-size:.85rem;}
+  .news-item:last-child{border-bottom:none;}
+  .news-item:hover{color:var(--accent);}
+  .news-meta{color:var(--muted);font-size:.72rem;margin-top:2px;}
+
+  /* ───────── DIGEST ───────── */
+  #digestText{font-size:1rem;line-height:1.7;white-space:pre-wrap;}
+  #digestMeta{color:var(--muted);font-size:.75rem;font-family:var(--font-mono);margin-bottom:12px;}
+  .btn-primary{
+    background:linear-gradient(90deg,var(--accent),var(--accent2));border:none;color:#04121a;font-weight:700;
+    padding:10px 20px;border-radius:8px;font-size:.85rem;
+  }
+
+  /* ───────── MODALS ───────── */
+  .modal-overlay{position:fixed;inset:0;background:rgba(2,4,8,.7);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;z-index:300;padding:20px;}
+  .modal-box{background:var(--panel-solid);border:1px solid var(--border);border-radius:14px;padding:22px;max-width:560px;width:100%;max-height:85vh;overflow-y:auto;}
+  .modal-box h2{font-family:var(--font-mono);font-size:1rem;letter-spacing:.1em;margin:0 0 14px;}
+  .modal-box h3{font-size:.85rem;color:var(--accent);margin:18px 0 8px;font-family:var(--font-mono);letter-spacing:.08em;}
+  .field-row{display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap;align-items:center;}
+  .field-row input,.field-row select,.field-row textarea{
+    background:var(--bg2);border:1px solid var(--border);color:var(--text);padding:8px 10px;border-radius:8px;font-size:.82rem;
+  }
+  .field-row input[type=text],.field-row input[type=password],.field-row input[type=email]{flex:1;min-width:100px;}
+  .field-row textarea{width:100%;min-height:80px;resize:vertical;}
+  .config-row{border:1px solid var(--border);border-radius:10px;padding:10px;margin-bottom:10px;}
+  .config-row .field-row{margin-bottom:6px;}
+  .config-row input[type=color]{width:36px;height:36px;padding:2px;border-radius:8px;}
+  .btn-remove{background:transparent;border:1px solid var(--danger);color:var(--danger);border-radius:6px;padding:6px 10px;font-size:.75rem;}
+  .btn-add{background:transparent;border:1px dashed var(--accent);color:var(--accent);border-radius:8px;padding:8px 14px;font-size:.8rem;width:100%;}
+  .hint-text{color:var(--muted);font-size:.75rem;line-height:1.5;margin:6px 0 12px;}
+  .warn-text{color:var(--danger);font-size:.72rem;line-height:1.5;margin:6px 0 12px;}
+  .modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:18px;}
+  .btn-secondary{background:transparent;border:1px solid var(--border);color:var(--muted);padding:9px 16px;border-radius:8px;font-size:.82rem;}
+  .checkbox-row{display:flex;align-items:center;gap:8px;font-size:.85rem;margin:10px 0;}
+
+  @media(max-width:640px){
+    #topbar{flex-direction:column;align-items:stretch;}
+    .topbar-controls{justify-content:space-between;}
+    #apiKeyInput{width:100%;flex:1;}
+    #orb{width:140px;height:140px;}
+    main{padding:14px;}
+  }
+</style>
+</head>
+<body>
+
+<div id="boot">
+  <div class="boot-title">JARVIS</div>
+  <div class="boot-hr"></div>
+  <div class="boot-sync">SINCRONIZANDO DADOS...</div>
+  <div class="boot-version">v5.0 · REBUILD</div>
+</div>
+
+<div id="activation" class="hidden">
+  <div class="act-title">JARVIS</div>
+  <button id="btnActivate">► ATIVAR SISTEMA</button>
+  <div class="act-hint">CLIQUE PARA INICIAR</div>
+</div>
+
+<div id="app" class="hidden">
+  <header id="topbar">
+    <div class="topbar-left">🧠 JARVIS <span class="badge-online">●</span></div>
+    <div class="topbar-controls">
+      <input id="apiKeyInput" type="password" placeholder="Cole sua API key da Anthropic...">
+      <select id="modelSelect">
+        <option value="economico">Econômico · Haiku</option>
+        <option value="equilibrado">Equilibrado · Sonnet</option>
+        <option value="maximo">Máximo · Opus</option>
+      </select>
+      <span id="actionBadge" class="hidden">0</span>
+      <button id="btnSettings" class="iconbtn" title="Configurações">⚙</button>
+    </div>
+  </header>
+
+  <nav id="tabs">
+    <button data-tab="assistant" class="active">JARVIS</button>
+    <button data-tab="brain">SECOND BRAIN</button>
+    <button data-tab="agenda">AGENDA</button>
+    <button data-tab="emails">E-MAILS</button>
+    <button data-tab="news">NOTÍCIAS</button>
+    <button data-tab="digest">DIGEST</button>
+  </nav>
+
+  <main>
+    <section id="tab-assistant" class="tabpanel active">
+      <div id="orbWrap">
+        <div id="orb">
+          <div class="ring"></div><div class="ring"></div><div class="ring"></div>
+          <div class="core"></div>
+        </div>
+      </div>
+      <div id="assistantName">JARVIS</div>
+      <div id="youSaid"></div>
+      <div id="hisSaid"></div>
+      <div id="status">ocioso</div>
+      <div id="inputRow">
+        <button id="btnMic" title="Falar">🎤</button>
+        <input id="textInput" placeholder="ou digite e tecle Enter...">
+        <button id="btnStop" title="Interromper fala">⏹</button>
+      </div>
+      <div id="micWarning" class="hidden"></div>
+    </section>
+
+    <section id="tab-brain" class="tabpanel">
+      <div class="panel-topbar">
+        <h2>🧠 SECOND BRAIN <span class="sub">contexto vivo do Lucas</span></h2>
+        <div class="stats">
+          <span id="brainCount">0 notas · 0 áreas</span>
+          <button id="btnAddNote" class="iconbtn" title="Nova nota">+</button>
+          <button id="btnReloadGraph" class="iconbtn" title="Recarregar">↻</button>
+        </div>
+      </div>
+      <div id="graphContainer"></div>
+      <div id="graphLegend"></div>
+    </section>
+
+    <section id="tab-agenda" class="tabpanel">
+      <div class="panel-topbar">
+        <h2>🗓️ AGENDA</h2>
+        <button id="btnRefreshAgenda" class="iconbtn" title="Atualizar">↻</button>
+      </div>
+      <div id="agendaContent" class="card"><div class="agenda-empty">Carregando...</div></div>
+    </section>
+
+    <section id="tab-emails" class="tabpanel">
+      <div class="panel-topbar">
+        <h2>📧 E-MAILS</h2>
+        <button id="btnRefreshEmails" class="iconbtn" title="Atualizar">↻</button>
+      </div>
+      <div id="emailsContent" class="card"><div class="agenda-empty">Carregando...</div></div>
+    </section>
+
+    <section id="tab-news" class="tabpanel">
+      <div class="panel-topbar">
+        <h2>📰 NOTÍCIAS</h2>
+        <button id="btnRefreshNews" class="iconbtn" title="Atualizar">↻</button>
+      </div>
+      <div id="newsContent" class="card"><div class="agenda-empty">Carregando...</div></div>
+    </section>
+
+    <section id="tab-digest" class="tabpanel">
+      <div class="panel-topbar">
+        <h2>☀️ MORNING DIGEST</h2>
+        <button id="btnRunDigest" class="btn-primary">Gerar Digest</button>
+      </div>
+      <div class="card">
+        <div id="digestMeta"></div>
+        <div id="digestText">Ainda não gerado hoje. Diga "bom dia" ou clique em Gerar Digest.</div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- SETTINGS MODAL -->
+<div id="settingsModal" class="modal-overlay hidden">
+  <div class="modal-box">
+    <h2>⚙ CONFIGURAÇÕES</h2>
+
+    <h3>🗓️ Agendas (iCal)</h3>
+    <div class="hint-text">Google Agenda no computador → ⚙ Configurações → clique na agenda à esquerda → "Integrar agenda" → copie o "Endereço secreto em formato iCal".</div>
+    <div class="warn-text">Este link dá acesso de leitura à sua agenda. Ele fica salvo só no seu navegador e nunca é enviado para a IA.</div>
+    <div id="calendarRows"></div>
+    <button id="btnAddCalendar" class="btn-add">+ adicionar agenda</button>
+
+    <h3>📧 Contas de e-mail</h3>
+    <div class="hint-text">
+      (a) Ative a verificação em 2 etapas em myaccount.google.com/security<br>
+      (b) Depois vá em myaccount.google.com/apppasswords, crie um app "Jarvis" e copie a senha de 16 letras<br>
+      (c) Cole essa senha de 16 letras abaixo — NÃO é sua senha normal do Gmail.
+    </div>
+    <div class="warn-text">Sua senha de app fica salva só no seu navegador e viaja apenas até a antena local e o seu provedor. Para a triagem, remetente, assunto e um trecho do e-mail são enviados à API da Anthropic. O Jarvis só LÊ: nunca envia, responde, apaga ou marca nada.</div>
+    <div id="emailRows"></div>
+    <button id="btnAddEmail" class="btn-add">+ adicionar conta</button>
+
+    <h3>⚙️ Motor</h3>
+    <div class="checkbox-row"><input type="checkbox" id="economyToggle"> Modo economia ativado</div>
+
+    <div class="modal-actions">
+      <button id="btnCloseSettings" class="btn-secondary">Cancelar</button>
+      <button id="btnSaveSettings" class="btn-primary">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- NOTE EDITOR MODAL -->
+<div id="noteEditorModal" class="modal-overlay hidden">
+  <div class="modal-box">
+    <h2 id="noteEditorTitle">NOTA</h2>
+    <div class="field-row"><input type="text" id="noteTitleInput" placeholder="Título curto"></div>
+    <div class="field-row">
+      <select id="noteAreaInput">
+        <option value="metas">Metas</option>
+        <option value="trabalho">Carreira</option>
+        <option value="projetos">Projetos</option>
+        <option value="financas">Finanças</option>
+        <option value="aprendizado">Aprendizado</option>
+        <option value="saude">Saúde</option>
+        <option value="relacoes">Relações</option>
+        <option value="meta">Geral</option>
+      </select>
+    </div>
+    <div class="field-row"><textarea id="noteBodyInput" placeholder="Conteúdo da nota"></textarea></div>
+    <div class="modal-actions">
+      <button id="btnDeleteNote" class="btn-remove">Excluir</button>
+      <button id="btnCloseNoteEditor" class="btn-secondary">Cancelar</button>
+      <button id="btnSaveNote" class="btn-primary">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+"use strict";
+
+/* ═══════════════════════ CONFIGURAÇÃO EMBUTIDA (Parte 1) ═══════════════════════ */
+
+const THEME = { accent:'#1fc8ff', accent2:'#8b5cf6' };
+
+const MODELS = { economico:'claude-haiku-4-5', equilibrado:'claude-sonnet-5', maximo:'claude-opus-4-8' };
+
+const CONFIG = {
+  name: 'Jarvis',
+  address: 'senhor',
+  themeColor: THEME.accent,
+  persona: 'formal_britanico',
+  wakeWord: 'ei jarvis',
+  voiceGender: 'masculina',
+  model: localStorage.getItem('jarvis_model') || 'maximo'
+};
+
+const AREA = {
+  metas:      { label:'Metas',      color:'#fbbf24' },
+  trabalho:   { label:'Carreira',   color:'#ff5547' },
+  projetos:   { label:'Projetos',   color:'#8b7cff' },
+  financas:   { label:'Finanças',   color:'#f7931a' },
+  aprendizado:{ label:'Aprendizado',color:'#2dd4ff' },
+  saude:      { label:'Saúde',      color:'#10b981' },
+  relacoes:   { label:'Relações',   color:'#ec4899' },
+  meta:       { label:'Geral',      color:'#8a90a6' }
+};
+
+const NOTES = [
+  { id:'lucas', area:'meta', title:'Lucas', body:'28 anos (nascido em 08/10/1997). CEO e Fundador da PACE Corporate, empresa de Saúde Corporativa e Ergonomia B2B. Mora em Nova Iguaçu, RJ.' },
+  { id:'meta-100-clientes', area:'metas', title:'100 Clientes', body:'Meta de curto prazo (3 a 6 meses): alcançar os primeiros 100 clientes ativos na PACE Corporate.' },
+  { id:'meta-holding', area:'metas', title:'Holding', body:'Meta de longo prazo (1 a 3 anos): atingir 500 clientes ativos e transformar a PACE Corporate em uma holding multinacional.' },
+  { id:'ceo-pace', area:'trabalho', title:'CEO PACE', body:'Como CEO da PACE Corporate, o foco diário é organizar a empresa, cuidar do marketing, prospectar clientes, fechar negócios, contratar funcionários, ministrar palestras e cuidar do trabalho administrativo da empresa.' }
+];
+
+const REL = [
+  ['lucas','meta-100-clientes'],
+  ['lucas','meta-holding'],
+  ['lucas','ceo-pace'],
+  ['ceo-pace','meta-100-clientes'],
+  ['ceo-pace','meta-holding'],
+  ['meta-100-clientes','meta-holding']
+];
+
+const DEFAULT_CALENDARS = [ { id:'cal-pace', name:'PACE Corporate', color:THEME.accent, url:'' } ];
+const DEFAULT_EMAILS = [ { id:'mail-pace', nick:'PACE Mail', color:THEME.accent, email:'', pass:'' } ];
+const NEWS_SUBJECTS = [
+  { key:'tecnologia', label:'Tecnologia', query:'tecnologia' },
+  { key:'economia', label:'Economia', query:'economia' },
+  { key:'saude-corp', label:'Saúde Corporativa', query:'saúde corporativa' },
+  { key:'ergonomia', label:'Ergonomia', query:'ergonomia no trabalho' },
+  { key:'setor', label:'Empresas do Setor', query:'saúde ocupacional ergonomia empresas' }
+];
+const WEEKDAYS = ['domingo','segunda-feira','terça-feira','quarta-feira','quinta-feira','sexta-feira','sábado'];
+const ANTENNA = 'http://127.0.0.1:4242';
+const WEATHER_CITY = 'Nova Iguaçu';
+
+/* ═══════════════════════ UTILITÁRIOS ═══════════════════════ */
+
+function normalize(s){ return (s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').trim(); }
+function slug(s){ return normalize(s).replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'') || 'nota'; }
+function escXml(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function escAttr(s){ return escXml(s).replace(/"/g,'&quot;'); }
+function fmtHM(d){ return d.getHours().toString().padStart(2,'0')+':'+d.getMinutes().toString().padStart(2,'0'); }
+function isSameDay(a,b){ return a.getFullYear()===b.getFullYear() && a.getMonth()===b.getMonth() && a.getDate()===b.getDate(); }
+function relTime(dateStr){
+  if (!dateStr) return '';
+  const d = new Date(dateStr);
+  if (isNaN(d)) return '';
+  const diffMin = Math.round((Date.now()-d.getTime())/60000);
+  if (diffMin < 1) return 'agora';
+  if (diffMin < 60) return 'há '+diffMin+' min';
+  const diffH = Math.round(diffMin/60);
+  if (diffH < 24) return 'há '+diffH+' h';
+  const diffD = Math.round(diffH/24);
+  return 'há '+diffD+' d';
+}
+
+/* ═══════════════════════ PERSISTÊNCIA ═══════════════════════ */
+
+function getNotes(){
+  let n = JSON.parse(localStorage.getItem('jarvis_notes')||'null');
+  if (!n) { n = JSON.parse(JSON.stringify(NOTES)); localStorage.setItem('jarvis_notes', JSON.stringify(n)); }
+  return n;
+}
+function saveNotes(n){ localStorage.setItem('jarvis_notes', JSON.stringify(n)); }
+function getRel(){
+  let r = JSON.parse(localStorage.getItem('jarvis_rel')||'null');
+  if (!r) { r = JSON.parse(JSON.stringify(REL)); localStorage.setItem('jarvis_rel', JSON.stringify(r)); }
+  return r;
+}
+function saveRel(r){ localStorage.setItem('jarvis_rel', JSON.stringify(r)); }
+function getCalendars(){ return JSON.parse(localStorage.getItem('jarvis_calendars')||'null') || JSON.parse(JSON.stringify(DEFAULT_CALENDARS)); }
+function saveCalendars(c){ localStorage.setItem('jarvis_calendars', JSON.stringify(c)); }
+function getEmails(){ return JSON.parse(localStorage.getItem('jarvis_emails')||'null') || JSON.parse(JSON.stringify(DEFAULT_EMAILS)); }
+function saveEmails(e){ localStorage.setItem('jarvis_emails', JSON.stringify(e)); }
+function getEmailTriageCache(){ return JSON.parse(localStorage.getItem('jarvis_email_triage')||'{}'); }
+function saveEmailTriageCache(c){ localStorage.setItem('jarvis_email_triage', JSON.stringify(c)); }
+function getNewsCache(){ return JSON.parse(localStorage.getItem('jarvis_news_cache')||'{}'); }
+function saveNewsCache(c){ localStorage.setItem('jarvis_news_cache', JSON.stringify(c)); }
+function isEconomyMode(){ return localStorage.getItem('jarvis_economy_mode') !== '0'; }
+
+/* ═══════════════════════ ESTADO EM MEMÓRIA ═══════════════════════ */
+
+let busy = false;
+let wakeActive = false;
+let micEnabled = true;
+let recognition = null;
+let sessionHistory = [];
+let cachedAgendaToday = [];
+let cachedCalendars = [];
+let lastEmails = [];
+let graphAnimId = null;
+let graphEdges = [];
+let graphPulses = [];
+let userInteractedSinceActivation = false;
+
+function currentModelId(){ return MODELS[CONFIG.model] || MODELS.equilibrado; }
+
+/* ═══════════════════════ UI HELPERS ═══════════════════════ */
+
+function setYouSaid(t){ document.getElementById('youSaid').textContent = t ? '"'+t+'"' : ''; }
+function setHisSaid(t){ document.getElementById('hisSaid').textContent = t || ''; }
+function setStatus(t){ document.getElementById('status').textContent = t; }
+function setOrbState(state){
+  const orb = document.getElementById('orb');
+  orb.classList.remove('idle','listening','thinking','speaking');
+  orb.classList.add(state);
+}
+function showTab(name){
+  document.querySelectorAll('#tabs button').forEach(b=> b.classList.toggle('active', b.dataset.tab===name));
+  document.querySelectorAll('.tabpanel').forEach(p=> p.classList.toggle('active', p.id==='tab-'+name));
+}
+
+document.getElementById('tabs').addEventListener('click', (e)=>{
+  const btn = e.target.closest('button[data-tab]');
+  if (btn) showTab(btn.dataset.tab);
+});
+
+/* ═══════════════════════ SECOND BRAIN — GRAFO NEURAL ═══════════════════════ */
+
+function renderGraph(){
+  if (graphAnimId) cancelAnimationFrame(graphAnimId);
+  const notes = getNotes();
+  const rel = getRel().filter(([a,b])=> notes.some(n=>n.id===a) && notes.some(n=>n.id===b));
+  const W=1000,H=540,cx=500,cy=270;
+  const connCount = {};
+  rel.forEach(([a,b])=>{ connCount[a]=(connCount[a]||0)+1; connCount[b]=(connCount[b]||0)+1; });
+  const n = notes.length;
+  const positions = {};
+  notes.forEach((note,i)=>{
+    const angle = n>0 ? (i/n)*Math.PI*2 - Math.PI/2 : 0;
+    const rx = 380, ry = 195;
+    positions[note.id] = { x: cx+Math.cos(angle)*rx, y: cy+Math.sin(angle)*ry };
+  });
+
+  graphEdges = rel.map(([a,b])=>{
+    const pa=positions[a], pb=positions[b];
+    const mx=(pa.x+pb.x)/2, my=(pa.y+pb.y)/2;
+    return { x1:pa.x, y1:pa.y, cx: mx+(cx-mx)*0.35, cy: my+(cy-my)*0.35, x2:pb.x, y2:pb.y };
+  });
+
+  let svg = '<defs>'+
+    '<radialGradient id="coreGrad" cx="50%" cy="50%" r="50%">'+
+      '<stop offset="0%" stop-color="'+THEME.accent2+'" stop-opacity="0.9"/>'+
+      '<stop offset="100%" stop-color="'+THEME.accent2+'" stop-opacity="0"/>'+
+    '</radialGradient>'+
+    '<linearGradient id="edgeGrad" x1="0%" y1="0%" x2="100%" y2="100%">'+
+      '<stop offset="0%" stop-color="'+THEME.accent2+'"/>'+
+      '<stop offset="100%" stop-color="'+THEME.accent+'"/>'+
+    '</linearGradient>'+
+    '<filter id="glow" x="-100%" y="-100%" width="300%" height="300%">'+
+      '<feGaussianBlur stdDeviation="5" result="blur"/>'+
+      '<feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>'+
+    '</filter>'+
+  '</defs>';
+
+  notes.forEach(note=>{
+    const p = positions[note.id];
+    const color = (AREA[note.area]||AREA.meta).color;
+    svg += '<line x1="'+cx+'" y1="'+cy+'" x2="'+p.x+'" y2="'+p.y+'" stroke="'+color+'" stroke-opacity="0.15" stroke-width="1"/>';
+  });
+
+  graphEdges.forEach(e=>{
+    svg += '<path d="M '+e.x1+' '+e.y1+' Q '+e.cx+' '+e.cy+' '+e.x2+' '+e.y2+'" fill="none" stroke="url(#edgeGrad)" stroke-width="1.4" stroke-opacity="0.55" stroke-dasharray="4 6" class="edge-flow"/>';
+  });
+
+  svg += '<circle cx="'+cx+'" cy="'+cy+'" r="70" fill="url(#coreGrad)" class="core-glow"/>';
+  svg += '<circle cx="'+cx+'" cy="'+cy+'" r="34" fill="#0b0f1e" stroke="'+THEME.accent2+'" stroke-width="2" class="core-pulse" filter="url(#glow)"/>';
+  svg += '<text x="'+cx+'" y="'+(cy+9)+'" text-anchor="middle" font-size="26">🧠</text>';
+
+  notes.forEach(note=>{
+    const p = positions[note.id];
+    const area = AREA[note.area]||AREA.meta;
+    const conns = connCount[note.id]||0;
+    const r = Math.min(40, 16+conns*4);
+    svg += '<g class="node" data-id="'+escAttr(note.id)+'" transform="translate('+p.x+','+p.y+')" style="cursor:pointer">'+
+      '<circle r="'+(r+8)+'" fill="none" stroke="'+area.color+'" stroke-width="1" class="node-ring"/>'+
+      '<circle r="'+r+'" fill="'+area.color+'" fill-opacity="0.85" stroke="#fff" stroke-opacity="0.15" class="node-core" filter="url(#glow)"/>'+
+      '<text y="'+(r+18)+'" text-anchor="middle" font-size="12" fill="#e6f1ff">'+escXml(note.title)+'</text>'+
+    '</g>';
+  });
+
+  graphEdges.forEach((e,idx)=>{
+    if (idx < 12) svg += '<circle r="3" fill="#fff" class="pulse" id="pulse'+idx+'" opacity="0"/>';
+  });
+
+  const container = document.getElementById('graphContainer');
+  container.innerHTML = '<svg viewBox="0 0 1000 540" preserveAspectRatio="xMidYMid meet">'+svg+'</svg>';
+
+  container.querySelectorAll('.node').forEach(g=>{
+    g.addEventListener('click', ()=> openNoteEditor(g.getAttribute('data-id')));
+  });
+
+  graphPulses = Array.from(container.querySelectorAll('.pulse')).map(el=>({
+    el, edgeIdx: graphEdges.length ? Math.floor(Math.random()*graphEdges.length) : 0,
+    t: Math.random(), speed: 0.22+Math.random()*0.18
+  }));
+
+  let lastTs = null;
+  function animate(ts){
+    if (!lastTs) lastTs = ts;
+    const dt = Math.min(0.05,(ts-lastTs)/1000);
+    lastTs = ts;
+    if (graphEdges.length){
+      graphPulses.forEach(p=>{
+        p.t += p.speed*dt;
+        if (p.t > 1){ p.t = 0; p.edgeIdx = Math.floor(Math.random()*graphEdges.length); }
+        const e = graphEdges[p.edgeIdx];
+        if (!e) return;
+        const t = p.t;
+        const x = (1-t)*(1-t)*e.x1 + 2*(1-t)*t*e.cx + t*t*e.x2;
+        const y = (1-t)*(1-t)*e.y1 + 2*(1-t)*t*e.cy + t*t*e.y2;
+        p.el.setAttribute('cx', x);
+        p.el.setAttribute('cy', y);
+        p.el.setAttribute('opacity', Math.sin(t*Math.PI).toFixed(2));
+      });
+    }
+    graphAnimId = requestAnimationFrame(animate);
+  }
+  graphAnimId = requestAnimationFrame(animate);
+
+  renderLegend(notes);
+  const areasCount = new Set(notes.map(n=>n.area)).size;
+  document.getElementById('brainCount').textContent = notes.length+' notas · '+areasCount+' áreas';
+}
+
+function renderLegend(notes){
+  const areas = [...new Set(notes.map(n=>n.area))];
+  let html = '<div class="legend-items">';
+  areas.forEach(a=>{
+    const def = AREA[a]||AREA.meta;
+    html += '<span class="legend-item"><span class="dot" style="background:'+def.color+'"></span>'+def.label+'</span>';
+  });
+  html += '</div><div class="legend-ok">✓ contexto injetado em todos os comandos do '+CONFIG.name+'</div>';
+  document.getElementById('graphLegend').innerHTML = html;
+}
+
+function flashNode(id){
+  const el = document.querySelector('#graphContainer .node[data-id="'+CSS.escape(id)+'"] .node-core');
+  if (!el) return;
+  el.classList.add('flash');
+  setTimeout(()=> el.classList.remove('flash'), 1400);
+}
+
+let editingNoteId = null;
+function openNoteEditor(id){
+  editingNoteId = id;
+  const modal = document.getElementById('noteEditorModal');
+  const title = document.getElementById('noteEditorTitle');
+  const titleInput = document.getElementById('noteTitleInput');
+  const areaInput = document.getElementById('noteAreaInput');
+  const bodyInput = document.getElementById('noteBodyInput');
+  const delBtn = document.getElementById('btnDeleteNote');
+  if (id) {
+    const note = getNotes().find(n=>n.id===id);
+    if (!note) return;
+    title.textContent = 'EDITAR NOTA';
+    titleInput.value = note.title;
+    areaInput.value = note.area;
+    bodyInput.value = note.body;
+    delBtn.classList.remove('hidden');
+  } else {
+    title.textContent = 'NOVA NOTA';
+    titleInput.value = '';
+    areaInput.value = 'meta';
+    bodyInput.value = '';
+    delBtn.classList.add('hidden');
+  }
+  modal.classList.remove('hidden');
+}
+function closeNoteEditor(){ document.getElementById('noteEditorModal').classList.add('hidden'); editingNoteId = null; }
+
+document.getElementById('btnAddNote').addEventListener('click', ()=> openNoteEditor(null));
+document.getElementById('btnReloadGraph').addEventListener('click', renderGraph);
+document.getElementById('btnCloseNoteEditor').addEventListener('click', closeNoteEditor);
+document.getElementById('btnSaveNote').addEventListener('click', ()=>{
+  const title = document.getElementById('noteTitleInput').value.trim();
+  const area = document.getElementById('noteAreaInput').value;
+  const body = document.getElementById('noteBodyInput').value.trim();
+  if (!title) return;
+  const notes = getNotes();
+  if (editingNoteId) {
+    const note = notes.find(n=>n.id===editingNoteId);
+    if (note) { note.title = title; note.area = area; note.body = body; }
+  } else {
+    const id = slug(title)+'-'+Date.now().toString(36);
+    notes.push({ id, area, title, body });
+    const rel = getRel();
+    const hub = notes.find(n=> n.area===area && n.id!==id);
+    if (hub) { rel.push([hub.id, id]); saveRel(rel); }
+  }
+  saveNotes(notes);
+  closeNoteEditor();
+  renderGraph();
+});
+document.getElementById('btnDeleteNote').addEventListener('click', ()=>{
+  if (!editingNoteId) return;
+  const notes = getNotes().filter(n=>n.id!==editingNoteId);
+  saveNotes(notes);
+  const rel = getRel().filter(([a,b])=> a!==editingNoteId && b!==editingNoteId);
+  saveRel(rel);
+  closeNoteEditor();
+  renderGraph();
+});
+
+function upsertNoteByTitle(area, title, body){
+  const notes = getNotes();
+  let existing = notes.find(n=> n.title.toLowerCase()===title.toLowerCase());
+  if (existing) { existing.area = area; existing.body = body; }
+  else {
+    existing = { id: slug(title)+'-'+Date.now().toString(36), area, title, body };
+    notes.push(existing);
+    const rel = getRel();
+    const hub = notes.find(n=> n.area===area && n.id!==existing.id);
+    if (hub) { rel.push([hub.id, existing.id]); saveRel(rel); }
+  }
+  saveNotes(notes);
+  renderGraph();
+  flashNode(existing.id);
+  return existing.id;
+}
+
+/* ═══════════════════════ CÉREBRO — API DA ANTHROPIC ═══════════════════════ */
+
+function personaDescription(p){
+  if (p==='descontraido') return 'descontraído e informal, mas sempre útil';
+  if (p==='sarcastico') return 'sarcástico e espirituoso, com humor seco, mas sempre útil';
+  return 'extremamente formal, educado e britânico, como um mordomo elegante e leal';
+}
+
+function originalBuildSystemPrompt(){
+  const notes = getNotes();
+  const byArea = {};
+  notes.forEach(n=>{ (byArea[n.area]=byArea[n.area]||[]).push(n); });
+  let brain = '';
+  Object.keys(byArea).forEach(area=>{
+    const label = (AREA[area]||AREA.meta).label;
+    brain += '\n['+label.toUpperCase()+']\n';
+    byArea[area].forEach(n=> brain += '- '+n.title+': '+n.body+'\n');
+  });
+  return 'Você é '+CONFIG.name+', um assistente de voz pessoal '+personaDescription(CONFIG.persona)+'. '+
+    'Trate o usuário como "'+CONFIG.address+'". Responda SEMPRE em português do Brasil, em respostas curtas e faladas '+
+    '(2 a 4 frases), sem emojis e sem markdown.\n\n'+
+    'Aqui está o SECOND BRAIN do usuário — use esse contexto para personalizar TODAS as suas respostas:'+
+    (brain || '\n(nenhuma nota ainda)')+
+    '\n\nPROTOCOLO DE MEMÓRIA VIVA: se o usuário revelar algo novo e duradouro sobre a vida dele, TERMINE sua resposta '+
+    'com uma linha no formato EXATO [[SAVE:area|titulo|texto]] (area deve ser uma de: metas, trabalho, projetos, '+
+    'financas, aprendizado, saude, relacoes, meta). Se já existir nota com esse título, ela será atualizada; senão '+
+    'nasce uma nova. Inclua essa linha SOMENTE quando houver algo realmente novo e importante para lembrar.';
+}
+
+function compactAgendaLine(){
+  if (!cachedAgendaToday.length) return 'Agenda de hoje: nenhum compromisso.';
+  const parts = cachedAgendaToday.slice(0,8).map(e=> (e.allDay?'DIA TODO':fmtHM(e.start))+' '+e.summary);
+  return 'Agenda de hoje: '+parts.join(' · ');
+}
+function compactEmailActionLine(){
+  const count = lastEmails.filter(e=>e.balde==='acao').length;
+  return 'E-mails pedindo ação: '+count+'.';
+}
+
+function buildSystemPrompt(){
+  let base = originalBuildSystemPrompt();
+  base += '\n\nContexto em tempo real:\n'+compactAgendaLine()+'\n'+compactEmailActionLine()+
+    '\n\nVocê agora também tem: Central de Agenda (Google Agenda), Central de E-mails com triagem AÇÃO/INFO/RUÍDO, '+
+    'Radar de Notícias e Morning Digest falado. Se perguntarem o que você sabe fazer, cite esses recursos e os '+
+    'comandos de voz: "minha agenda", "próximo compromisso", "agenda da semana", "meus e-mails", "tem e-mail importante?", '+
+    '"notícias", "notícias de [assunto]", "bom dia", "atualizar e-mails", "atualizar notícias".';
+  return base;
+}
+
+function processSaveDirective(text){
+  const re = /\[\[SAVE:([a-z_]+)\|([^|]+)\|([\s\S]+?)\]\]/;
+  const m = text.match(re);
+  if (!m) return text;
+  const area = AREA[m[1]] ? m[1] : 'meta';
+  upsertNoteByTitle(area, m[2].trim(), m[3].trim());
+  return text.replace(re,'').trim();
+}
+
+async function callClaude(userText){
+  const key = localStorage.getItem('anthropic_key');
+  if (!key) {
+    const msg = 'Não encontrei sua chave de API. Cole-a no campo no topo da tela, por favor, '+CONFIG.address+'.';
+    return msg;
+  }
+  sessionHistory.push({ role:'user', content:userText });
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method:'POST',
+      headers:{
+        'x-api-key': key,
+        'anthropic-version':'2023-06-01',
+        'anthropic-dangerous-direct-browser-access':'true',
+        'content-type':'application/json'
+      },
+      body: JSON.stringify({ model: currentModelId(), max_tokens:400, system: buildSystemPrompt(), messages: sessionHistory })
+    });
+    if (!res.ok) {
+      sessionHistory.pop();
+      return 'Tive um erro ao falar com meu cérebro. Confira se a chave de API está correta, '+CONFIG.address+'.';
+    }
+    const data = await res.json();
+    let text = (data.content && data.content[0] && data.content[0].text) || '';
+    if (!text) text = 'Desculpe, não consegui formular uma resposta agora.';
+    text = processSaveDirective(text);
+    sessionHistory.push({ role:'assistant', content:text });
+    return text;
+  } catch(e) {
+    sessionHistory.pop();
+    return 'Não consegui me conectar à internet agora. Verifique sua conexão, '+CONFIG.address+'.';
+  }
+}
+
+/* ═══════════════════════ COMANDOS — ROTEADOR ═══════════════════════ */
+
+async function originalHandleCommand(text){
+  const reply = await callClaude(text);
+  return reply;
+}
+
+async function tryLocalCommand(norm){
+  if (/(minha agenda|o que eu tenho hoje|agenda de hoje)/.test(norm)) { showTab('agenda'); return speakAgendaToday(); }
+  if (/(proximo compromisso|proxima reuniao)/.test(norm)) { return speakNextEvent(); }
+  if (/agenda da semana/.test(norm)) { showTab('agenda'); return speakWeekAgenda(); }
+  if (/atualizar e-?mails?/.test(norm)) { showTab('emails'); await refreshEmails(true); return 'E-mails atualizados, '+CONFIG.address+'.'; }
+  if (/meus e-?mails?/.test(norm)) { showTab('emails'); return speakEmailSummary(); }
+  if (/(tem e-?mail importante|e-?mail importante)/.test(norm)) { showTab('emails'); return speakActionEmails(); }
+  if (/atualizar noticias/.test(norm)) { showTab('news'); await refreshAllNews(true); return 'Notícias atualizadas, '+CONFIG.address+'.'; }
+  const newsSubjMatch = norm.match(/noticias de (.+)/);
+  if (newsSubjMatch) { showTab('news'); return speakNewsFor(newsSubjMatch[1]); }
+  if (/^noticias$|principais noticias/.test(norm)) { showTab('news'); return speakAllNews(); }
+  if (/bom dia/.test(norm)) { showTab('digest'); const r = await runMorningDigest('voz'); return r; }
+  return null;
+}
+
+async function handleCommand(text){
+  const norm = normalize(text);
+  const local = await tryLocalCommand(norm);
+  if (local !== null) return local;
+  return await originalHandleCommand(text);
+}
+
+async function runCommand(text){
+  busy = true;
+  userInteractedSinceActivation = true;
+  setYouSaid(text);
+  setStatus('pensando'); setOrbState('thinking');
+  const reply = await handleCommand(text);
+  setHisSaid(reply);
+  setStatus('falando'); setOrbState('speaking');
+  speak(reply);
+}
+
+/* ═══════════════════════ VOZ ═══════════════════════ */
+
+function pickVoice(){
+  const voices = window.speechSynthesis.getVoices();
+  const pt = voices.filter(v=> /pt(-|_)BR/i.test(v.lang) || /^pt/i.test(v.lang));
+  if (!pt.length) return null;
+  const genderHint = CONFIG.voiceGender==='feminina' ? /female|luciana|maria|femin/i : /male|felipe|daniel|ricardo|masculin/i;
+  return pt.find(v=> genderHint.test(v.name)) || pt[0];
+}
+
+function speak(text){
+  if (!('speechSynthesis' in window)) { busy=false; setStatus('ocioso'); setOrbState('idle'); return; }
+  busy = true;
+  window.speechSynthesis.cancel();
+  const utter = new SpeechSynthesisUtterance(text);
+  utter.lang = 'pt-BR';
+  const v = pickVoice();
+  if (v) utter.voice = v;
+  utter.onend = ()=>{ busy = false; setStatus('ocioso'); setOrbState('idle'); };
+  utter.onerror = ()=>{ busy = false; setStatus('ocioso'); setOrbState('idle'); };
+  window.speechSynthesis.speak(utter);
+}
+function stopSpeaking(){ window.speechSynthesis.cancel(); busy = false; setStatus('ocioso'); setOrbState('idle'); }
+
+function initRecognition(){
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) { document.getElementById('micWarning').textContent = 'Reconhecimento de voz não é suportado neste navegador. Use o campo de texto.'; document.getElementById('micWarning').classList.remove('hidden'); return; }
+  recognition = new SR();
+  recognition.lang = 'pt-BR';
+  recognition.continuous = true;
+  recognition.interimResults = false;
+  recognition.onresult = (ev)=>{
+    if (busy) return;
+    const res = ev.results[ev.results.length-1];
+    if (!res.isFinal) return;
+    onSpeechResult(res[0].transcript.trim());
+  };
+  recognition.onerror = (ev)=>{
+    if (ev.error === 'not-allowed') {
+      micEnabled = false;
+      const w = document.getElementById('micWarning');
+      w.textContent = 'Permissão de microfone negada. Habilite o microfone nas configurações do navegador para usar comandos de voz.';
+      w.classList.remove('hidden');
+    }
+  };
+  recognition.onend = ()=>{
+    if (!busy && micEnabled) { try { recognition.start(); } catch(e){} }
+  };
+  try { recognition.start(); } catch(e){}
+}
+
+function onSpeechResult(transcript){
+  const norm = normalize(transcript);
+  const wakeNorm = normalize(CONFIG.wakeWord);
+  if (!wakeActive) {
+    const idx = norm.indexOf(wakeNorm);
+    if (idx === -1) return;
+    const afterNorm = norm.slice(idx+wakeNorm.length).trim();
+    if (afterNorm.length > 2) {
+      const lowerT = transcript.toLowerCase();
+      const wIdx = lowerT.indexOf(CONFIG.wakeWord);
+      const commandText = wIdx !== -1
+        ? transcript.slice(wIdx+CONFIG.wakeWord.length).replace(/^[,.\s]+/,'').trim()
+        : transcript;
+      runCommand(commandText || transcript);
+    } else {
+      wakeActive = true;
+      setStatus('ouvindo'); setOrbState('listening');
+      speak('Diga, '+CONFIG.address+'.');
+    }
+    return;
+  }
+  wakeActive = false;
+  runCommand(transcript);
+}
+
+document.getElementById('orb').addEventListener('click', ()=>{
+  if (busy) return;
+  wakeActive = true;
+  setStatus('ouvindo'); setOrbState('listening');
+  speak('Pode falar, '+CONFIG.address+'.');
+});
+document.getElementById('btnMic').addEventListener('click', ()=> document.getElementById('orb').click());
+document.getElementById('btnStop').addEventListener('click', stopSpeaking);
+document.getElementById('textInput').addEventListener('keydown', (e)=>{
+  if (e.key==='Enter' && !busy) {
+    const val = e.target.value.trim();
+    if (!val) return;
+    e.target.value = '';
+    runCommand(val);
+  }
+});
+
+/* ═══════════════════════ MÓDULO AGENDA (ICS) ═══════════════════════ */
+
+function unfoldICS(text){
+  return text.replace(/\r\n/g,'\n').split('\n').reduce((acc,line)=>{
+    if (/^[ \t]/.test(line) && acc.length) acc[acc.length-1] += line.slice(1);
+    else acc.push(line);
+    return acc;
+  }, []);
+}
+function unescapeICS(s){ return s.replace(/\\n/g,' ').replace(/\\,/g,',').replace(/\\;/g,';').replace(/\\\\/g,'\\'); }
+function parseICSDate(value, params){
+  params = params || {};
+  if (params.VALUE==='DATE' || /^\d{8}$/.test(value)) {
+    const y=+value.slice(0,4), mo=+value.slice(4,6)-1, d=+value.slice(6,8);
+    return { date: new Date(y,mo,d), allDay:true };
+  }
+  const utc = value.endsWith('Z');
+  const y=+value.slice(0,4), mo=+value.slice(4,6)-1, d=+value.slice(6,8);
+  const h=+value.slice(9,11)||0, mi=+value.slice(11,13)||0, se=+value.slice(13,15)||0;
+  const date = utc ? new Date(Date.UTC(y,mo,d,h,mi,se)) : new Date(y,mo,d,h,mi,se);
+  return { date, allDay:false };
+}
+function parseRRule(value){
+  const parts = {};
+  value.split(';').forEach(p=>{ const [k,v]=p.split('='); parts[k]=v; });
+  return parts;
+}
+function parseICS(text){
+  const lines = unfoldICS(text);
+  const events = [];
+  let cur = null;
+  lines.forEach(line=>{
+    if (line.startsWith('BEGIN:VEVENT')) { cur = {}; return; }
+    if (line.startsWith('END:VEVENT')) { if (cur) events.push(cur); cur=null; return; }
+    if (!cur) return;
+    const idx = line.indexOf(':');
+    if (idx===-1) return;
+    const left = line.slice(0,idx), value = line.slice(idx+1);
+    const [key, ...paramsArr] = left.split(';');
+    const params = {};
+    paramsArr.forEach(p=>{ const [pk,pv]=p.split('='); if(pk) params[pk]=pv; });
+    try {
+      if (key==='SUMMARY') cur.summary = unescapeICS(value);
+      else if (key==='LOCATION') cur.location = unescapeICS(value);
+      else if (key==='DTSTART') cur.dtstart = parseICSDate(value, params);
+      else if (key==='DTEND') cur.dtend = parseICSDate(value, params);
+      else if (key==='RRULE') cur.rrule = parseRRule(value);
+      else if (key==='EXDATE') { cur.exdate = cur.exdate||[]; value.split(',').forEach(v=> cur.exdate.push(parseICSDate(v, params))); }
+    } catch(e) {}
+  });
+  return events.filter(ev=> ev.dtstart);
+}
+const DOW = { SU:0, MO:1, TU:2, WE:3, TH:4, FR:5, SA:6 };
+function expandEvent(ev, windowStart, windowEnd){
+  const results = [];
+  const startDate = ev.dtstart.date;
+  const duration = ev.dtend ? Math.max(0, ev.dtend.date - startDate) : 3600000;
+  if (!ev.rrule) {
+    const endD = ev.dtend ? ev.dtend.date : new Date(startDate.getTime()+duration);
+    if (startDate <= windowEnd && endD >= windowStart) results.push({ start:startDate, end:endD, allDay: ev.dtstart.allDay });
+    return results;
+  }
+  const freq = ev.rrule.FREQ;
+  const count = ev.rrule.COUNT ? parseInt(ev.rrule.COUNT,10) : null;
+  const until = ev.rrule.UNTIL ? parseICSDate(ev.rrule.UNTIL, {}).date : null;
+  const byday = ev.rrule.BYDAY ? ev.rrule.BYDAY.split(',') : null;
+  const exdates = (ev.exdate||[]).map(e=>e.date.getTime());
+  let cursor = new Date(startDate);
+  let occurrences = 0, iterations = 0;
+  const maxIter = 3000;
+  const stepDaily = freq==='WEEKLY' && byday;
+  while (cursor <= windowEnd && iterations < maxIter) {
+    iterations++;
+    let matches = true;
+    if (byday && freq==='WEEKLY') matches = byday.some(bd=> DOW[bd.slice(-2)] === cursor.getDay());
+    if (matches) {
+      if (until && cursor > until) break;
+      if (cursor >= startDate) {
+        occurrences++;
+        if (!exdates.includes(cursor.getTime()) && cursor <= windowEnd && new Date(cursor.getTime()+duration) >= windowStart) {
+          results.push({ start:new Date(cursor), end:new Date(cursor.getTime()+duration), allDay: ev.dtstart.allDay });
+        }
+        if (count && occurrences >= count) break;
+      }
+    }
+    if (freq==='DAILY') cursor = new Date(cursor.getTime()+86400000);
+    else if (freq==='WEEKLY') cursor = new Date(cursor.getTime()+(stepDaily?86400000:7*86400000));
+    else if (freq==='MONTHLY') { const d=new Date(cursor); d.setMonth(d.getMonth()+1); cursor=d; }
+    else if (freq==='YEARLY') { const d=new Date(cursor); d.setFullYear(d.getFullYear()+1); cursor=d; }
+    else break;
+  }
+  return results;
+}
+
+function isAntennaOffline(){ return 'ANTENA OFFLINE — rode: node server.js'; }
+
+async function refreshCalendars(){
+  const calendars = getCalendars();
+  for (const cal of calendars) {
+    if (!cal.url) { cal._error = 'Sem link configurado (abra ⚙ para colar o link secreto iCal)'; cal._events = []; continue; }
+    try {
+      const res = await fetch(ANTENNA+'/proxy?url='+encodeURIComponent(cal.url));
+      if (!res.ok) throw new Error('HTTP '+res.status);
+      const text = await res.text();
+      cal._events = parseICS(text);
+      cal._error = null;
+    } catch(e) {
+      cal._error = isAntennaOffline();
+      cal._events = cal._events || [];
+    }
+  }
+  cachedCalendars = calendars;
+  const now = new Date();
+  const todayEnd = new Date(now); todayEnd.setHours(23,59,59,999);
+  let todayEvents = [];
+  calendars.forEach(cal=>{
+    (cal._events||[]).forEach(ev=>{
+      expandEvent(ev, now, todayEnd).forEach(o=>{
+        if (isSameDay(o.start, now)) todayEvents.push({ ...o, summary: ev.summary||'(sem título)', location: ev.location||'', calColor: cal.color });
+      });
+    });
+  });
+  todayEvents.sort((a,b)=>a.start-b.start);
+  cachedAgendaToday = todayEvents;
+  renderAgendaPanel();
+  return calendars;
+}
+
+function renderAgendaPanel(){
+  const el = document.getElementById('agendaContent');
+  const calendars = cachedCalendars.length ? cachedCalendars : getCalendars();
+  const offlineErrors = calendars.filter(c=>c._error && c._error.startsWith('ANTENA'));
+  if (offlineErrors.length === calendars.length && calendars.length) {
+    el.innerHTML = '<div class="offline-note">📡 ANTENA OFFLINE — rode: <b>node server.js</b> em um terminal na pasta do Jarvis, depois clique em ↻.</div>';
+    return;
+  }
+  const now = new Date();
+  const windowEnd = new Date(now); windowEnd.setDate(windowEnd.getDate()+7); windowEnd.setHours(23,59,59,999);
+  let all = [];
+  calendars.forEach(cal=>{
+    (cal._events||[]).forEach(ev=>{
+      expandEvent(ev, now, windowEnd).forEach(o=> all.push({ ...o, summary: ev.summary||'(sem título)', location: ev.location||'', calColor: cal.color }));
+    });
+  });
+  all.sort((a,b)=>a.start-b.start);
+
+  if (!all.length) {
+    const errs = calendars.filter(c=>c._error).map(c=> '<div class="offline-note">'+escXml(c.name)+': '+escXml(c._error)+'</div>').join('');
+    el.innerHTML = errs + '<div class="agenda-empty">Nenhum compromisso nos próximos 7 dias.</div>';
+    return;
+  }
+
+  const groups = {};
+  all.forEach(ev=>{
+    const key = ev.start.toDateString();
+    (groups[key] = groups[key]||[]).push(ev);
+  });
+
+  const next = all.find(ev=> ev.start > now);
+  let html = '';
+  const errs = calendars.filter(c=>c._error).map(c=> '<div class="offline-note">'+escXml(c.name)+': '+escXml(c._error)+'</div>').join('');
+  if (errs) html += errs;
+
+  Object.keys(groups).forEach(key=>{
+    const evs = groups[key];
+    const d = evs[0].start;
+    let label;
+    if (isSameDay(d, now)) label = 'HOJE';
+    else { const tmr = new Date(now); tmr.setDate(tmr.getDate()+1); label = isSameDay(d,tmr) ? 'AMANHÃ' : (WEEKDAYS[d.getDay()].toUpperCase()+' · '+d.toLocaleDateString('pt-BR')); }
+    html += '<div class="agenda-day"><h3>'+label+'</h3>';
+    evs.forEach(ev=>{
+      const isNext = next && ev===next;
+      html += '<div class="agenda-event">'+
+        '<div class="agenda-dot" style="background:'+ev.calColor+'"></div>'+
+        '<div class="agenda-time">'+(ev.allDay?'DIA TODO':fmtHM(ev.start))+'</div>'+
+        '<div style="flex:1">'+
+          '<div class="agenda-title">'+escXml(ev.summary)+'</div>'+
+          (ev.location?'<div class="agenda-loc">'+escXml(ev.location)+'</div>':'')+
+          (isNext ? '<div class="agenda-countdown">'+countdownLabel(ev.start)+'</div>' : '')+
+        '</div>'+
+      '</div>';
+    });
+    html += '</div>';
+  });
+  el.innerHTML = html;
+}
+function countdownLabel(date){
+  const diff = date.getTime() - Date.now();
+  if (diff <= 0) return 'agora';
+  const h = Math.floor(diff/3600000), m = Math.floor((diff%3600000)/60000);
+  return 'em '+(h>0?h+'h ':'')+m+'min';
+}
+document.getElementById('btnRefreshAgenda').addEventListener('click', refreshCalendars);
+setInterval(()=>{ if (document.getElementById('tab-agenda').classList.contains('active')) renderAgendaPanel(); }, 30000);
+
+function speakAgendaToday(){
+  if (!cachedAgendaToday.length) return 'Você não tem nenhum compromisso hoje, '+CONFIG.address+'.';
+  const parts = cachedAgendaToday.slice(0,6).map(e=> (e.allDay?'dia todo':fmtHM(e.start))+', '+e.summary);
+  return 'Hoje você tem: '+parts.join('; ')+'.';
+}
+function speakNextEvent(){
+  const now = new Date();
+  const next = cachedAgendaToday.find(e=>e.start>now);
+  if (!next) return 'Não há mais nenhum compromisso hoje, '+CONFIG.address+'.';
+  return 'Seu próximo compromisso é '+next.summary+', '+countdownLabel(next.start)+'.';
+}
+function speakWeekAgenda(){
+  const now = new Date();
+  const windowEnd = new Date(now); windowEnd.setDate(windowEnd.getDate()+7);
+  let all = [];
+  (cachedCalendars.length?cachedCalendars:getCalendars()).forEach(cal=>{
+    (cal._events||[]).forEach(ev=> expandEvent(ev, now, windowEnd).forEach(o=> all.push({...o, summary: ev.summary||'(sem título)'})));
+  });
+  all.sort((a,b)=>a.start-b.start);
+  if (!all.length) return 'Sua semana está livre, '+CONFIG.address+'.';
+  const byDay = {};
+  all.forEach(e=>{ const k=e.start.toDateString(); (byDay[k]=byDay[k]||[]).push(e); });
+  const parts = Object.keys(byDay).slice(0,5).map(k=>{
+    const d = new Date(k);
+    return WEEKDAYS[d.getDay()]+': '+byDay[k].length+' compromisso'+(byDay[k].length>1?'s':'');
+  });
+  return 'Na sua semana: '+parts.join('; ')+'.';
+}
+
+/* ═══════════════════════ MÓDULO E-MAILS ═══════════════════════ */
+
+function guessImapHost(email){
+  if (/@gmail\.com$/i.test(email)) return 'imap.gmail.com';
+  return 'imap.gmail.com';
+}
+function heuristicTriage(list, cache){
+  list.forEach(e=>{
+    const s = (e.assunto+' '+e.remetente+' '+e.trecho).toLowerCase();
+    let balde = 'info';
+    if (/noreply|newsletter|unsubscribe|promo|desconto|marketing/.test(s)) balde = 'ruido';
+    else if (/\?|prazo|fatura|reuniao|reunião|por favor|urgente|confirmar|aguardo/.test(s)) balde = 'acao';
+    cache[e.id] = { balde, resumo: e.assunto+' (triagem local)' };
+  });
+}
+async function triageEmails(emails){
+  const cache = getEmailTriageCache();
+  const untriaged = emails.filter(e=> !cache[e.id]);
+  if (untriaged.length) {
+    const key = localStorage.getItem('anthropic_key');
+    let done = false;
+    if (key) {
+      try {
+        const batchInput = untriaged.map(e=>({ id:e.id, de:e.remetente, assunto:e.assunto, trecho:(e.trecho||'').slice(0,200) }));
+        const sys = 'Você é um classificador de e-mails para '+CONFIG.name+'. Classifique cada e-mail em um balde: '+
+          '"acao" (pede resposta, tarefa, decisão ou tem prazo), "info" (vale saber mas não exige nada), ou "ruido" '+
+          '(promoção, newsletter, notificação automática). Responda APENAS com um JSON array no formato '+
+          '[{"id":"...","balde":"acao|info|ruido","resumo":"uma frase curta em português"}], sem nenhum texto adicional.';
+        const res = await fetch('https://api.anthropic.com/v1/messages', {
+          method:'POST',
+          headers:{ 'x-api-key':key, 'anthropic-version':'2023-06-01', 'anthropic-dangerous-direct-browser-access':'true', 'content-type':'application/json' },
+          body: JSON.stringify({ model: currentModelId(), max_tokens:1200, system: sys, messages:[{role:'user', content: JSON.stringify(batchInput)}] })
+        });
+        if (res.ok) {
+          const data = await res.json();
+          const text = (data.content && data.content[0] && data.content[0].text) || '[]';
+          const jm = text.match(/\[[\s\S]*\]/);
+          const parsed = JSON.parse(jm ? jm[0] : text);
+          parsed.forEach(item=>{ cache[item.id] = { balde:item.balde, resumo:item.resumo }; });
+          done = true;
+        }
+      } catch(e) { done = false; }
+    }
+    if (!done) heuristicTriage(untriaged, cache);
+    saveEmailTriageCache(cache);
+  }
+  emails.forEach(e=>{ const t = cache[e.id]; e.balde = t ? t.balde : 'info'; e.resumo = t ? t.resumo : e.assunto; });
+}
+
+async function refreshEmails(force){
+  const accounts = getEmails();
+  let allEmails = [];
+  for (const acc of accounts) {
+    if (!acc.email || !acc.pass) { acc._error = 'Conta não configurada (abra ⚙)'; continue; }
+    try {
+      const res = await fetch(ANTENNA+'/emails', {
+        method:'POST', headers:{'content-type':'application/json'},
+        body: JSON.stringify({ host: guessImapHost(acc.email), usuario: acc.email, senhaApp: acc.pass, quantidade: 20 })
+      });
+      const data = await res.json();
+      if (data.erro) {
+        acc._error = data.erro === 'LOGIN_FAILED'
+          ? 'Senha de app inválida ou verificação em 2 etapas desativada — refaça em myaccount.google.com/apppasswords'
+          : data.erro;
+        continue;
+      }
+      acc._error = null;
+      (data.emails||[]).forEach(em=> allEmails.push({ ...em, conta: acc.nick, cor: acc.color }));
+    } catch(e) {
+      acc._error = isAntennaOffline();
+    }
+  }
+  await triageEmails(allEmails);
+  allEmails.sort((a,b)=> new Date(b.data||0) - new Date(a.data||0));
+  lastEmails = allEmails;
+  renderEmailsPanel(accounts);
+  updateActionBadge();
+  return allEmails;
+}
+
+function renderEmailsPanel(accounts){
+  const el = document.getElementById('emailsContent');
+  accounts = accounts || getEmails();
+  const offline = accounts.length && accounts.every(a=> a._error && a._error.startsWith('ANTENA'));
+  if (offline) {
+    el.innerHTML = '<div class="offline-note">📡 ANTENA OFFLINE — rode: <b>node server.js</b> em um terminal na pasta do Jarvis, depois clique em ↻.</div>';
+    return;
+  }
+  const errs = accounts.filter(a=>a._error).map(a=> '<div class="offline-note">'+escXml(a.nick)+': '+escXml(a._error)+'</div>').join('');
+  const acao = lastEmails.filter(e=>e.balde==='acao');
+  const info = lastEmails.filter(e=>e.balde==='info');
+  const ruido = lastEmails.filter(e=>e.balde==='ruido');
+
+  function itemHtml(e){
+    return '<div class="email-item" data-id="'+escAttr(e.id)+'">'+
+      '<div class="email-dot" style="background:'+e.cor+'"></div>'+
+      '<div style="flex:1">'+
+        '<div class="email-from">'+escXml(e.remetente)+'</div>'+
+        '<div class="email-summary">'+escXml(e.resumo)+'</div>'+
+        '<div class="email-time">'+relTime(e.data)+'</div>'+
+        '<div class="email-expand">'+escXml((e.trecho||'').slice(0,400))+'</div>'+
+      '</div>'+
+    '</div>';
+  }
+
+  let html = errs;
+  if (!lastEmails.length) {
+    html += '<div class="agenda-empty">Nenhum e-mail carregado ainda.</div>';
+  } else {
+    html += '<div class="email-section"><h3>⚡ AÇÃO ('+acao.length+')</h3>'+(acao.length?acao.map(itemHtml).join(''):'<div class="agenda-empty">Nenhum e-mail pedindo ação.</div>')+'</div>';
+    html += '<div class="email-section"><h3>ℹ️ INFO ('+info.length+')</h3>'+(info.length?info.map(itemHtml).join(''):'<div class="agenda-empty">Nada por aqui.</div>')+'</div>';
+    html += '<div class="email-section"><h3 id="ruidoSection">🔇 RUÍDO ('+ruido.length+') — clique para expandir</h3><div id="ruidoList">'+ruido.map(itemHtml).join('')+'</div></div>';
+  }
+  el.innerHTML = html;
+
+  el.querySelectorAll('.email-item').forEach(it=> it.addEventListener('click', ()=> it.classList.toggle('open')));
+  const ruidoHeader = document.getElementById('ruidoSection');
+  if (ruidoHeader) ruidoHeader.addEventListener('click', ()=> document.getElementById('ruidoList').classList.toggle('open'));
+}
+function updateActionBadge(){
+  const count = lastEmails.filter(e=>e.balde==='acao').length;
+  const badge = document.getElementById('actionBadge');
+  if (count > 0) { badge.textContent = count; badge.classList.remove('hidden'); }
+  else badge.classList.add('hidden');
+}
+document.getElementById('btnRefreshEmails').addEventListener('click', ()=> refreshEmails(true));
+
+function speakEmailSummary(){
+  const acao = lastEmails.filter(e=>e.balde==='acao').length;
+  const info = lastEmails.filter(e=>e.balde==='info').length;
+  const ruido = lastEmails.filter(e=>e.balde==='ruido').length;
+  let msg = 'Você tem '+acao+' e-mail'+(acao!==1?'s':'')+' pedindo ação, '+info+' informativo'+(info!==1?'s':'')+' e '+ruido+' de ruído.';
+  if (acao>0) msg += ' O mais recente é sobre: '+lastEmails.filter(e=>e.balde==='acao')[0].resumo+'.';
+  return msg;
+}
+function speakActionEmails(){
+  const acao = lastEmails.filter(e=>e.balde==='acao');
+  if (!acao.length) return 'Nenhum e-mail pedindo ação no momento, '+CONFIG.address+'. Pode ficar tranquilo.';
+  return 'Você tem '+acao.length+' e-mail'+(acao.length>1?'s':'')+' pedindo ação: '+acao.slice(0,5).map(e=>e.resumo).join('; ')+'.';
+}
+
+/* ═══════════════════════ MÓDULO NOTÍCIAS ═══════════════════════ */
+
+function cleanNewsTitle(t){ return (t||'').replace(/\s-\s[^-]+$/,'').trim(); }
+async function refreshNewsFor(subject, force){
+  const cache = getNewsCache();
+  const entry = cache[subject.key];
+  const now = Date.now();
+  if (!force && entry && (now-entry.ts) < 30*60*1000) return entry.items;
+  try {
+    const url = 'https://news.google.com/rss/search?q='+encodeURIComponent(subject.query)+'&hl=pt-BR&gl=BR&ceid=BR:pt-419';
+    const res = await fetch(ANTENNA+'/proxy?url='+encodeURIComponent(url));
+    if (!res.ok) throw new Error('HTTP '+res.status);
+    const xmlText = await res.text();
+    const doc = new DOMParser().parseFromString(xmlText, 'text/xml');
+    const items = Array.from(doc.querySelectorAll('item')).slice(0,5).map(it=>({
+      title: cleanNewsTitle(it.querySelector('title') ? it.querySelector('title').textContent : ''),
+      link: it.querySelector('link') ? it.querySelector('link').textContent : '',
+      pubDate: it.querySelector('pubDate') ? it.querySelector('pubDate').textContent : ''
+    }));
+    cache[subject.key] = { items, ts: now };
+    saveNewsCache(cache);
+    return items;
+  } catch(e) {
+    return entry ? entry.items : [];
+  }
+}
+async function refreshAllNews(force){
+  const cache = getNewsCache();
+  const offlineFlags = [];
+  for (const subj of NEWS_SUBJECTS) {
+    const before = cache[subj.key];
+    const items = await refreshNewsFor(subj, force);
+    if (!items.length && !before) offlineFlags.push(subj.key);
+  }
+  renderNewsPanel();
+  return offlineFlags;
+}
+function renderNewsPanel(){
+  const el = document.getElementById('newsContent');
+  const cache = getNewsCache();
+  const anyData = NEWS_SUBJECTS.some(s=> cache[s.key] && cache[s.key].items && cache[s.key].items.length);
+  if (!anyData) {
+    el.innerHTML = '<div class="offline-note">📡 ANTENA OFFLINE — rode: <b>node server.js</b> em um terminal na pasta do Jarvis, depois clique em ↻.</div>';
+    return;
+  }
+  let html = '';
+  NEWS_SUBJECTS.forEach(subj=>{
+    const entry = cache[subj.key];
+    const items = entry ? entry.items : [];
+    html += '<div class="news-subject"><h3>'+escXml(subj.label)+'</h3>';
+    if (!items.length) html += '<div class="agenda-empty">Sem manchetes no momento.</div>';
+    else items.forEach(it=>{
+      html += '<a class="news-item" href="'+escAttr(it.link)+'" target="_blank" rel="noopener">'+escXml(it.title)+
+        '<div class="news-meta">'+(entry?relTime(entry.ts):'')+'</div></a>';
+    });
+    html += '</div>';
+  });
+  el.innerHTML = html;
+}
+document.getElementById('btnRefreshNews').addEventListener('click', ()=> refreshAllNews(true));
+
+function fuzzySubject(text){
+  const n = normalize(text);
+  return NEWS_SUBJECTS.find(s=> normalize(s.label).includes(n) || n.includes(normalize(s.label)) || normalize(s.query).includes(n));
+}
+function speakNewsFor(subjectText){
+  const subj = fuzzySubject(subjectText);
+  if (!subj) return 'Não encontrei esse assunto no seu radar de notícias, '+CONFIG.address+'.';
+  const cache = getNewsCache();
+  const items = (cache[subj.key]||{}).items || [];
+  if (!items.length) return 'Ainda não tenho manchetes de '+subj.label+'.';
+  return 'Em '+subj.label+': '+items.slice(0,3).map(i=>i.title).join('; ')+'.';
+}
+function speakAllNews(){
+  const cache = getNewsCache();
+  const parts = NEWS_SUBJECTS.map(s=>{
+    const items = (cache[s.key]||{}).items || [];
+    return items.length ? s.label+': '+items[0].title : null;
+  }).filter(Boolean);
+  if (!parts.length) return 'Ainda não tenho notícias carregadas, '+CONFIG.address+'.';
+  return 'Principais manchetes: '+parts.join('; ')+'.';
+}
+
+/* ═══════════════════════ MÓDULO MORNING DIGEST ═══════════════════════ */
+
+async function getWeatherToday(){
+  try {
+    let loc = JSON.parse(localStorage.getItem('jarvis_weather_loc')||'null');
+    if (!loc) {
+      const geoRes = await fetch('https://geocoding-api.open-meteo.com/v1/search?name='+encodeURIComponent(WEATHER_CITY)+'&count=1&language=pt&format=json');
+      const geo = await geoRes.json();
+      if (geo.results && geo.results[0]) {
+        loc = { lat: geo.results[0].latitude, lon: geo.results[0].longitude };
+        localStorage.setItem('jarvis_weather_loc', JSON.stringify(loc));
+      } else return null;
+    }
+    const res = await fetch('https://api.open-meteo.com/v1/forecast?latitude='+loc.lat+'&longitude='+loc.lon+'&daily=temperature_2m_max,temperature_2m_min,weathercode&timezone=auto');
+    const data = await res.json();
+    const max = data.daily.temperature_2m_max[0], min = data.daily.temperature_2m_min[0], code = data.daily.weathercode[0];
+    return weatherCodeLabel(code)+', mínima de '+Math.round(min)+'° e máxima de '+Math.round(max)+'°';
+  } catch(e) { return null; }
+}
+function weatherCodeLabel(code){
+  const map = {0:'céu limpo',1:'poucas nuvens',2:'parcialmente nublado',3:'nublado',45:'neblina',48:'neblina',
+    51:'garoa fraca',53:'garoa',55:'garoa forte',61:'chuva fraca',63:'chuva',65:'chuva forte',
+    71:'neve fraca',73:'neve',75:'neve forte',80:'pancadas de chuva',81:'pancadas de chuva',82:'pancadas fortes',
+    95:'tempestade',96:'tempestade com granizo',99:'tempestade forte'};
+  return map[code] || 'tempo variável';
+}
+
+async function buildDigestData(){
+  await refreshCalendars();
+  await refreshEmails();
+  await refreshAllNews();
+  const weather = await getWeatherToday();
+  const events = cachedAgendaToday.slice(0,15).map(e=> (e.allDay?'dia todo':fmtHM(e.start))+' '+e.summary);
+  const actionEmails = lastEmails.filter(e=>e.balde==='acao').map(e=>e.resumo);
+  const cache = getNewsCache();
+  const headlines = {};
+  NEWS_SUBJECTS.forEach(s=>{ headlines[s.label] = ((cache[s.key]||{}).items||[]).slice(0,3).map(i=>i.title); });
+  const goals = getNotes().filter(n=>n.area==='metas').slice(0,2).map(n=> n.title+': '+n.body);
+  const now = new Date();
+  return { weekday: WEEKDAYS[now.getDay()], date: now.toLocaleDateString('pt-BR'), weather, events, actionEmails, headlines, goals };
+}
+async function callDigestAPI(parts){
+  const key = localStorage.getItem('anthropic_key');
+  if (!key) return buildDigestFallback(parts);
+  const sys = buildSystemPrompt()+'\n\nAgora monte o MORNING DIGEST do dia: um briefing corrido, natural e falável, '+
+    'curto (cerca de 30 segundos de fala), terminando com uma frase de foco do dia conectada às metas do usuário. '+
+    'Não use markdown nem listas, fale como se estivesse conversando.';
+  const payload = 'Dados para o briefing de hoje:\n'+
+    'Dia: '+parts.weekday+', '+parts.date+'\n'+
+    'Clima: '+(parts.weather||'indisponível')+'\n'+
+    'Agenda de hoje: '+(parts.events.length?parts.events.join(' · '):'nenhum compromisso')+'\n'+
+    'E-mails que pedem ação: '+(parts.actionEmails.length?parts.actionEmails.join(' · '):'nenhum')+'\n'+
+    'Manchetes: '+Object.entries(parts.headlines).map(([s,h])=> s+': '+h.join('; ')).join(' | ')+'\n'+
+    'Metas: '+parts.goals.join(' · ');
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method:'POST',
+      headers:{ 'x-api-key':key, 'anthropic-version':'2023-06-01', 'anthropic-dangerous-direct-browser-access':'true', 'content-type':'application/json' },
+      body: JSON.stringify({ model: currentModelId(), max_tokens:500, system: sys, messages:[{role:'user', content: payload}] })
+    });
+    if (!res.ok) throw new Error('HTTP '+res.status);
+    const data = await res.json();
+    return (data.content && data.content[0] && data.content[0].text) || buildDigestFallback(parts);
+  } catch(e) { return buildDigestFallback(parts); }
+}
+function buildDigestFallback(parts){
+  let msg = 'Bom dia, '+CONFIG.address+'. Hoje é '+parts.weekday+', '+parts.date+'. ';
+  if (parts.weather) msg += 'O tempo em Nova Iguaçu está '+parts.weather+'. ';
+  msg += parts.events.length ? ('Sua agenda de hoje: '+parts.events.slice(0,5).join(', ')+'. ') : 'Sua agenda de hoje está livre. ';
+  msg += parts.actionEmails.length ? (parts.actionEmails.length+' e-mails pedem sua ação. ') : 'Nenhum e-mail pedindo ação. ';
+  const firstHeadline = Object.values(parts.headlines).flat().filter(Boolean)[0];
+  if (firstHeadline) msg += 'Nas notícias: '+firstHeadline+'. ';
+  if (parts.goals.length) msg += 'Foco do dia: avançar em direção a '+parts.goals[0].split(':')[0]+'.';
+  return msg;
+}
+function showDigestPanel(text){
+  document.getElementById('digestMeta').textContent = new Date().toLocaleString('pt-BR');
+  document.getElementById('digestText').textContent = text;
+}
+async function runMorningDigest(trigger){
+  const today = new Date().toISOString().slice(0,10);
+  if (trigger==='auto' && localStorage.getItem('jarvis_last_digest')===today) return null;
+  setStatus('pensando'); setOrbState('thinking');
+  const parts = await buildDigestData();
+  const text = await callDigestAPI(parts);
+  localStorage.setItem('jarvis_last_digest', today);
+  showDigestPanel(text);
+  return text;
+}
+document.getElementById('btnRunDigest').addEventListener('click', async ()=>{
+  busy = true;
+  setStatus('pensando'); setOrbState('thinking');
+  const text = await runMorningDigest('botao');
+  setHisSaid(text);
+  setStatus('falando'); setOrbState('speaking');
+  speak(text);
+});
+
+/* ═══════════════════════ CONFIGURAÇÕES (⚙) ═══════════════════════ */
+
+let draftCalendars = [];
+let draftEmails = [];
+
+function renderCalendarRows(){
+  const wrap = document.getElementById('calendarRows');
+  wrap.innerHTML = draftCalendars.map((c,i)=>
+    '<div class="config-row" data-i="'+i+'">'+
+      '<div class="field-row">'+
+        '<input type="color" class="cal-color" value="'+(c.color||THEME.accent)+'">'+
+        '<input type="text" class="cal-name" placeholder="Nome" value="'+escAttr(c.name||'')+'">'+
+        '<button class="btn-remove cal-remove">Remover</button>'+
+      '</div>'+
+      '<div class="field-row"><input type="text" class="cal-url" placeholder="Endereço secreto iCal (https://calendar.google.com/...)" value="'+escAttr(c.url||'')+'"></div>'+
+    '</div>'
+  ).join('');
+  wrap.querySelectorAll('.cal-remove').forEach(btn=> btn.addEventListener('click', (e)=>{
+    const i = +e.target.closest('.config-row').dataset.i;
+    draftCalendars.splice(i,1); renderCalendarRows();
+  }));
+  wrap.querySelectorAll('.cal-name').forEach((inp,i)=> inp.addEventListener('input', ()=> draftCalendars[i].name = inp.value));
+  wrap.querySelectorAll('.cal-url').forEach((inp,i)=> inp.addEventListener('input', ()=> draftCalendars[i].url = inp.value));
+  wrap.querySelectorAll('.cal-color').forEach((inp,i)=> inp.addEventListener('input', ()=> draftCalendars[i].color = inp.value));
+}
+function renderEmailRows(){
+  const wrap = document.getElementById('emailRows');
+  wrap.innerHTML = draftEmails.map((a,i)=>
+    '<div class="config-row" data-i="'+i+'">'+
+      '<div class="field-row">'+
+        '<input type="color" class="mail-color" value="'+(a.color||THEME.accent)+'">'+
+        '<input type="text" class="mail-nick" placeholder="Apelido" value="'+escAttr(a.nick||'')+'">'+
+        '<button class="btn-remove mail-remove">Remover</button>'+
+      '</div>'+
+      '<div class="field-row"><input type="email" class="mail-email" placeholder="seuemail@gmail.com" value="'+escAttr(a.email||'')+'"></div>'+
+      '<div class="field-row"><input type="password" class="mail-pass" placeholder="Senha de app (16 letras)" value="'+escAttr(a.pass||'')+'"></div>'+
+    '</div>'
+  ).join('');
+  wrap.querySelectorAll('.mail-remove').forEach(btn=> btn.addEventListener('click',(e)=>{
+    const i = +e.target.closest('.config-row').dataset.i;
+    draftEmails.splice(i,1); renderEmailRows();
+  }));
+  wrap.querySelectorAll('.mail-nick').forEach((inp,i)=> inp.addEventListener('input', ()=> draftEmails[i].nick = inp.value));
+  wrap.querySelectorAll('.mail-email').forEach((inp,i)=> inp.addEventListener('input', ()=> draftEmails[i].email = inp.value));
+  wrap.querySelectorAll('.mail-pass').forEach((inp,i)=> inp.addEventListener('input', ()=> draftEmails[i].pass = inp.value));
+  wrap.querySelectorAll('.mail-color').forEach((inp,i)=> inp.addEventListener('input', ()=> draftEmails[i].color = inp.value));
+}
+function openSettings(){
+  draftCalendars = JSON.parse(JSON.stringify(getCalendars()));
+  draftEmails = JSON.parse(JSON.stringify(getEmails()));
+  document.getElementById('economyToggle').checked = isEconomyMode();
+  renderCalendarRows();
+  renderEmailRows();
+  document.getElementById('settingsModal').classList.remove('hidden');
+}
+function closeSettings(){ document.getElementById('settingsModal').classList.add('hidden'); }
+document.getElementById('btnSettings').addEventListener('click', openSettings);
+document.getElementById('btnCloseSettings').addEventListener('click', closeSettings);
+document.getElementById('btnAddCalendar').addEventListener('click', ()=>{
+  draftCalendars.push({ id:'cal-'+Date.now().toString(36), name:'Nova Agenda', color:THEME.accent, url:'' });
+  renderCalendarRows();
+});
+document.getElementById('btnAddEmail').addEventListener('click', ()=>{
+  draftEmails.push({ id:'mail-'+Date.now().toString(36), nick:'Nova Conta', color:THEME.accent, email:'', pass:'' });
+  renderEmailRows();
+});
+document.getElementById('btnSaveSettings').addEventListener('click', ()=>{
+  saveCalendars(draftCalendars);
+  saveEmails(draftEmails);
+  localStorage.setItem('jarvis_economy_mode', document.getElementById('economyToggle').checked ? '1' : '0');
+  closeSettings();
+  refreshCalendars();
+  refreshEmails();
+});
+
+document.getElementById('modelSelect').addEventListener('change', (e)=>{
+  CONFIG.model = e.target.value;
+  localStorage.setItem('jarvis_model', CONFIG.model);
+});
+document.getElementById('apiKeyInput').addEventListener('change', (e)=>{
+  localStorage.setItem('anthropic_key', e.target.value.trim());
+});
+
+/* ═══════════════════════ BOOT / ATIVAÇÃO ═══════════════════════ */
+
+function populateTopbar(){
+  const key = localStorage.getItem('anthropic_key');
+  if (key) document.getElementById('apiKeyInput').value = key;
+  document.getElementById('modelSelect').value = CONFIG.model;
+}
+
+function loadVoicesThenGreet(){
+  const greet = ()=>{
+    const msg = 'Sistemas online. Estou ouvindo, '+CONFIG.address+'.';
+    setHisSaid(msg);
+    speak(msg);
+    setTimeout(()=>{
+      runMorningDigest('auto').then(text=>{
+        if (!text || busy || userInteractedSinceActivation) return;
+        setYouSaid('');
+        setHisSaid(text);
+        setStatus('falando'); setOrbState('speaking');
+        speak(text);
+      });
+    }, 4000);
+  };
+  if (window.speechSynthesis && window.speechSynthesis.getVoices().length) greet();
+  else if (window.speechSynthesis) { window.speechSynthesis.onvoiceschanged = greet; setTimeout(greet, 900); }
+  else greet();
+}
+
+function onActivate(){
+  document.getElementById('activation').classList.add('hidden');
+  document.getElementById('app').classList.remove('hidden');
+  initRecognition();
+  loadVoicesThenGreet();
+  refreshCalendars();
+  refreshEmails();
+  refreshAllNews();
+  setInterval(refreshCalendars, 10*60*1000);
+  setInterval(()=>refreshEmails(), 15*60*1000);
+  setInterval(()=>refreshAllNews(), 30*60*1000);
+}
+document.getElementById('btnActivate').addEventListener('click', onActivate);
+
+window.addEventListener('DOMContentLoaded', ()=>{
+  populateTopbar();
+  renderGraph();
+  renderAgendaPanel();
+  setTimeout(()=>{
+    document.getElementById('boot').classList.add('fade-out');
+    setTimeout(()=>{
+      document.getElementById('boot').classList.add('hidden');
+      document.getElementById('activation').classList.remove('hidden');
+    }, 600);
+  }, 2200);
+});
+
+})();
+</script>
+</body>
+</html>
