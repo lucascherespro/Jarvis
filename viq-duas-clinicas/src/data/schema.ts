@@ -1,0 +1,111 @@
+import {z} from 'zod';
+
+export const clienteSchema = z.object({
+  nome: z.string(),
+  cor: z.string().describe('Cor do ícone com a inicial'),
+  mensagem: z.string(),
+  hora: z.string().describe('HH:MM entre 21:00 e 08:00'),
+  respostaViq: z.string(),
+  agendou: z.boolean(),
+  procedimento: z.string(),
+  dia: z.string().describe('Ex.: Sáb 10:00'),
+  valor: z.number().describe('Valor ilustrativo em R$'),
+});
+
+export const roteiroSchema = z.object({
+  logoFile: z.string().describe('Arquivo em public/ (ex.: LOGOTIPO.png). Vazio = wordmark VIQ'),
+  mostrarZonaSegura: z.boolean().describe('Desenha as zonas proibidas do Instagram (depuração)'),
+  tempos: z.object({
+    gancho: z.number(),
+    mapa: z.number(),
+    noite: z.number(),
+    relatorio: z.number(),
+    virada: z.number(),
+    final: z.number(),
+    transicaoGanchoMapa: z.number(),
+    transicaoMapaNoite: z.number(),
+    transicaoNoiteRelatorio: z.number(),
+    transicaoRelatorioVirada: z.number(),
+    transicaoViradaFinal: z.number(),
+    relogioInicio: z.number().describe('Frame global em que o relógio sai das 21:00'),
+    relogioFim: z.number().describe('Frame global em que o relógio chega às 08:00'),
+    manha: z.number().describe('Frame global da cena da manhã'),
+  }),
+  gancho: z.object({
+    linha1: z.string(),
+    linha2: z.string(),
+    linha3: z.string(),
+    destaque: z.string().describe('Palavra da linha 3 em roxo claro'),
+    atrasos: z.array(z.number()).describe('Frame de entrada de cada linha'),
+  }),
+  mapa: z.object({
+    regiao: z.string(),
+    rua: z.string(),
+    clinicaA: z.string(),
+    clinicaB: z.string(),
+    distancia: z.string(),
+    legenda: z.string(),
+  }),
+  divisao: z.object({
+    cabecalhoA: z.string(),
+    cabecalhoB: z.string(),
+  }),
+  clientes: z.array(clienteSchema),
+  desistencias: z.array(
+    z.object({
+      nome: z.string().describe('Nome igual ao da lista de clientes'),
+      mensagem: z.string(),
+      frame: z.number().describe('Frame global em que a mensagem chega na Clínica A'),
+    }),
+  ),
+  extrasA: z.array(z.number()).describe('Frames globais de mensagens extras ("oi?", "??") na Clínica A'),
+  textos: z.object({
+    semResposta: z.string(),
+    semRespostaHa: z.string(),
+    agendadas: z.string(),
+    digitando: z.string(),
+    respondidoEm: z.string(),
+    agendado: z.string(),
+    duvidaRespondida: z.string(),
+    valorSufixo: z.string(),
+    seloValores: z.string(),
+    selo: z.string(),
+    diaAntes: z.string(),
+    diaDepois: z.string(),
+    mensagemExtra: z.string(),
+    foiParaOutra: z.string(),
+  }),
+  manha: z.object({
+    a1: z.string(),
+    a2: z.string(),
+    b1: z.string(),
+    b2: z.string(),
+  }),
+  relatorio: z.object({
+    titulo: z.string(),
+    subtitulo: z.string(),
+    graficoTitulo: z.string(),
+    barras: z.array(z.object({hora: z.string(), valor: z.number(), pico: z.boolean()})),
+    donutTitulo: z.string(),
+    donutValor: z.number(),
+    listaTitulo: z.string(),
+  }),
+  virada: z.object({
+    linha1: z.string(),
+    linha2: z.string(),
+    linha3: z.string(),
+    linha4: z.string(),
+  }),
+  final: z.object({
+    pergunta: z.string(),
+    botaoA: z.string(),
+    botaoB: z.string(),
+    cta1: z.string(),
+    cta2: z.string(),
+    cta2Destaque: z.string(),
+    handle: z.string(),
+  }),
+});
+
+export type Roteiro = z.infer<typeof roteiroSchema>;
+export type Cliente = z.infer<typeof clienteSchema>;
