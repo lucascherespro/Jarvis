@@ -1,6 +1,7 @@
 import React from 'react';
 import {Composition, Folder, Still} from 'remotion';
 import {Capa} from './Capa';
+import {Carrossel, TOTAL_SLIDES} from './carrossel/Carrossel';
 import {roteiroPadrao} from './data/roteiro';
 import {roteiroSchema} from './data/schema';
 import {calcularDuracao, DuasClinicas} from './DuasClinicas';
@@ -31,6 +32,7 @@ export const RemotionRoot: React.FC = () => {
         calculateMetadata={calcularDuracao}
       />
       <Still id="Capa" component={Capa} width={1080} height={1920} schema={roteiroSchema} defaultProps={roteiroPadrao} />
+      <Composition id="Carrossel" component={Carrossel} durationInFrames={TOTAL_SLIDES} fps={1} width={1080} height={1350} />
     </Folder>
   );
 };
