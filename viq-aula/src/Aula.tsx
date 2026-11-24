@@ -33,6 +33,7 @@ const Abertura: React.FC<{r: Roteiro}> = ({r}) => {
     <CenaLousa
       etiqueta={a.etiqueta}
       fala={a.fala}
+      voz={{id: 'abertura', inicio: a.fala.inicio}}
       poses={[
         {f: 0, v: 'acenar1'},
         {f: 10, v: 'acenar2'},
@@ -68,6 +69,7 @@ const Licao1: React.FC<{r: Roteiro}> = ({r}) => {
   return (
     <CenaLousa
       fala={l.fala}
+      voz={{id: 'licao1', inicio: l.fala.inicio}}
       poses={[
         {f: 0, v: 'explicando'},
         {f: 30, v: 'apontandoAlto'},
@@ -122,6 +124,7 @@ const Licao2: React.FC<{r: Roteiro}> = ({r}) => {
   return (
     <CenaLousa
       fala={l.fala}
+      voz={{id: 'licao2', inicio: l.fala.inicio}}
       poses={[
         {f: 0, v: 'explicando'},
         {f: 30, v: 'apontandoAlto'},
@@ -177,6 +180,7 @@ const Licao3: React.FC<{r: Roteiro}> = ({r}) => {
   return (
     <CenaLousa
       fala={l.fala}
+      voz={{id: 'licao3', inicio: l.fala.inicio}}
       poses={[
         {f: 0, v: 'explicando'},
         {f: 30, v: 'apontandoAlto'},
@@ -221,6 +225,7 @@ const Resumo: React.FC<{r: Roteiro}> = ({r}) => {
   return (
     <CenaLousa
       fala={l.fala}
+      voz={{id: 'resumo', inicio: 24}}
       poses={[
         {f: 0, v: 'apontandoAlto'},
         {f: 160, v: 'explicando'},
@@ -255,6 +260,7 @@ const Tarefa: React.FC<{r: Roteiro}> = ({r}) => {
   return (
     <CenaLousa
       fala={l.fala}
+      voz={{id: 'tarefa', inicio: l.fala.inicio}}
       poses={[
         {f: 0, v: 'explicando'},
         {f: 24, v: 'apontandoAlto'},
@@ -283,12 +289,12 @@ export const Video: React.FC<{roteiro: Roteiro; extras?: boolean}> = ({roteiro: 
   const cenas: {nome: string; dur: number; el: React.ReactNode; trans: 'fade' | 'slide'}[] = [
     {nome: 'Abertura', dur: t.abertura, el: <Abertura r={r} />, trans: 'fade'},
     {nome: 'Lição 1', dur: t.licao1, el: <Licao1 r={r} />, trans: 'slide'},
-    {nome: 'Aluna 1', dur: t.aluna1, el: <CenaAluna aluna={ALUNAS.carla} fala={r.aluna1.fala} rotulo={r.aluna1.rotulo} poses={[{f: 0, v: 'pensando'}, {f: 40, v: 'explicando'}]} expressoes={[{f: 0, v: 'preocupada'}, {f: 40, v: 'estressada'}]} />, trans: 'slide'},
+    {nome: 'Aluna 1', dur: t.aluna1, el: <CenaAluna aluna={ALUNAS.carla} fala={r.aluna1.fala} rotulo={r.aluna1.rotulo} voz="aluna1" poses={[{f: 0, v: 'pensando'}, {f: 40, v: 'explicando'}]} expressoes={[{f: 0, v: 'preocupada'}, {f: 40, v: 'estressada'}]} />, trans: 'slide'},
     {nome: 'Lição 2', dur: t.licao2, el: <Licao2 r={r} />, trans: 'slide'},
-    {nome: 'Aluna 2', dur: t.aluna2, el: <CenaAluna aluna={ALUNAS.cacheada} fala={r.aluna2.fala} rotulo={r.aluna2.rotulo} poses={[{f: 0, v: 'emPe'}, {f: 30, v: 'pensando'}]} expressoes={[{f: 0, v: 'chocada'}, {f: 34, v: 'aliviada'}]} />, trans: 'slide'},
+    {nome: 'Aluna 2', dur: t.aluna2, el: <CenaAluna aluna={ALUNAS.cacheada} fala={r.aluna2.fala} rotulo={r.aluna2.rotulo} voz="aluna2" poses={[{f: 0, v: 'emPe'}, {f: 30, v: 'pensando'}]} expressoes={[{f: 0, v: 'chocada'}, {f: 34, v: 'aliviada'}]} />, trans: 'slide'},
     {nome: 'Lição 3', dur: t.licao3, el: <Licao3 r={r} />, trans: 'slide'},
     {nome: 'Resumo', dur: t.resumo, el: <Resumo r={r} />, trans: 'fade'},
-    {nome: 'Pergunta', dur: t.pergunta, el: <CenaAluna aluna={ALUNAS.carla} fala={r.pergunta.fala} rotulo={r.pergunta.rotulo} poses={[{f: 0, v: 'maoLevantada'}]} expressoes={[{f: 0, v: 'feliz'}]} />, trans: 'slide'},
+    {nome: 'Pergunta', dur: t.pergunta, el: <CenaAluna aluna={ALUNAS.carla} fala={r.pergunta.fala} rotulo={r.pergunta.rotulo} voz="pergunta" poses={[{f: 0, v: 'maoLevantada'}]} expressoes={[{f: 0, v: 'feliz'}]} />, trans: 'slide'},
     {nome: 'Tarefa', dur: t.tarefa, el: <Tarefa r={r} />, trans: 'slide'},
   ];
   return (

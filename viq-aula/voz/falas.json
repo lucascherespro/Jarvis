@@ -1,0 +1,12 @@
+{
+  "_leia": "Texto falado de cada cena. Escreva como se pronuncia (ex.: VIQ = Víqui). Depois rode: python voz/gerar.py <pasta-do-modelo>",
+  "abertura": {"voz": "professora", "texto": "Oi, turma! Bora entender isso em um minuto?"},
+  "licao1": {"voz": "professora", "texto": "Lição um: a cliente decide rápido. Quanto mais você demora pra responder, mais ela procura outra clínica."},
+  "aluna1": {"voz": "aluna1", "texto": "Mas eu tô atendendo! Não dá pra responder na hora..."},
+  "licao2": {"voz": "professora", "texto": "Lição dois: muita mensagem chega de noite e no fim de semana. Justo quando não tem ninguém pra responder."},
+  "aluna2": {"voz": "aluna2", "texto": "Ahh... então é aí que eu perco cliente!"},
+  "licao3": {"voz": "professora", "texto": "Lição três: é aqui que entra a Víqui. A cliente manda mensagem, a Víqui responde na hora, tira as dúvidas, mostra os horários e já deixa marcado. E você? Só atende."},
+  "resumo": {"voz": "professora", "texto": "Resumindo: responde na hora, até de madrugada. Tira dúvidas de preço e procedimento. Mostra os horários e agenda. E você foca em atender. Anotou?"},
+  "pergunta": {"voz": "aluna1", "texto": "Professora, como eu coloco isso na minha clínica?"},
+  "tarefa": {"voz": "professora", "texto": "Boa pergunta! Tarefa de casa: comenta AULA, que eu te mostro."}
+}

@@ -1,5 +1,7 @@
 import React from 'react';
-import {interpolate, spring, useCurrentFrame, useVideoConfig} from 'remotion';
+import {Audio} from '@remotion/media';
+import {interpolate, Sequence, spring, staticFile, useCurrentFrame, useVideoConfig} from 'remotion';
+import {DURACAO_VOZ, IdVoz} from '../data/voz';
 import {ALUNA_CACHEADA, Aparencia, CARLA, PROFESSORA} from '../character/aparencia';
 import {Personagem} from '../character/Personagem';
 import type {Chave, NomeExpressao, NomePose} from '../character/rig';
@@ -8,6 +10,21 @@ import {clamp, cores, curvas, fontFamily} from '../theme';
 import {Lousa} from './Lousa';
 
 export const ALUNAS = {carla: CARLA, cacheada: ALUNA_CACHEADA} as const;
+
+/** Narração gravada (public/voz/<id>.wav) + intervalo em que a boca mexe */
+export const useVoz = (voz?: {id: IdVoz; inicio: number}) => {
+  const {fps} = useVideoConfig();
+  if (!voz) return {audio: null, falando: []};
+  const dur = Math.ceil(DURACAO_VOZ[voz.id] * fps);
+  return {
+    audio: (
+      <Sequence from={voz.inicio} durationInFrames={dur + 6} layout="none" name={`Voz ${voz.id}`}>
+        <Audio src={staticFile(`voz/${voz.id}.wav`)} />
+      </Sequence>
+    ),
+    falando: [{inicio: voz.inicio + 2, fim: voz.inicio + dur - 4}],
+  };
+};
 
 /** Balão de fala com rabicho apontando para a esquerda (para a cabeça da personagem) */
 export const Fala: React.FC<{texto: string; inicio: number; fim: number; x: number; y: number; largura: number; tamanho?: number; rabicho?: 'esquerda' | 'baixo'}> = ({
@@ -91,8 +108,10 @@ export const CenaLousa: React.FC<{
   etiqueta?: string;
   children?: React.ReactNode;
   zoom?: [number, number];
-}> = ({poses, expressoes, fala, etiqueta, children, zoom = [1, 1.04]}) => {
+  voz?: {id: IdVoz; inicio: number};
+}> = ({poses, expressoes, fala, etiqueta, children, zoom = [1, 1.04], voz}) => {
   const frame = useCurrentFrame();
+  const {audio, falando} = useVoz(voz);
   const {durationInFrames} = useVideoConfig();
   const z = interpolate(frame, [0, durationInFrames], zoom, {...clamp, easing: curvas.suave});
   return (
@@ -101,21 +120,23 @@ export const CenaLousa: React.FC<{
         <ParedeSala />
         <Lousa etiqueta={etiqueta}>{children}</Lousa>
         <div style={{position: 'absolute', left: -40, top: 760}}>
-          <Personagem aparencia={PROFESSORA} largura={560} poses={poses} expressoes={expressoes} falando={fala ? [{inicio: fala.inicio, fim: fala.fim - 10}] : []} />
+          <Personagem aparencia={PROFESSORA} largura={560} poses={poses} expressoes={expressoes} falando={voz ? falando : fala ? [{inicio: fala.inicio, fim: fala.fim - 10}] : []} />
         </div>
         <MesaProfessora />
       </div>
       {fala ? <Fala texto={fala.texto} inicio={fala.inicio} fim={fala.fim} x={410} y={1040} largura={620} tamanho={40} /> : null}
+      {audio}
     </Palco>
   );
 };
 
 /** Plano da aluna: carteira, aluna em close e pergunta num balão acima */
-export const CenaAluna: React.FC<{aluna: Aparencia; fala: string; rotulo: string; poses: Chave<NomePose>[]; expressoes: Chave<NomeExpressao>[]}> = ({aluna, fala, rotulo, poses, expressoes}) => {
+export const CenaAluna: React.FC<{aluna: Aparencia; fala: string; rotulo: string; poses: Chave<NomePose>[]; expressoes: Chave<NomeExpressao>[]; voz?: IdVoz}> = ({aluna, fala, rotulo, poses, expressoes, voz}) => {
   const frame = useCurrentFrame();
   const {fps, durationInFrames} = useVideoConfig();
   const z = interpolate(frame, [0, durationInFrames], [1.02, 1.08], clamp);
   const chip = spring({frame: frame - 4, fps, config: {damping: 200}, durationInFrames: 10});
+  const {audio, falando} = useVoz(voz ? {id: voz, inicio: 8} : undefined);
   return (
     <Palco>
       <div style={{position: 'absolute', inset: 0, scale: z, transformOrigin: '50% 50%'}}>
@@ -132,7 +153,7 @@ export const CenaAluna: React.FC<{aluna: Aparencia; fala: string; rotulo: string
           <rect x={150} y={590} width={140} height={70} fill="#FAD1E6" transform="rotate(2 220 625)" />
         </svg>
         <div style={{position: 'absolute', left: 190, top: 620}}>
-          <Personagem aparencia={aluna} largura={700} poses={poses} expressoes={expressoes} falando={[{inicio: 10, fim: durationInFrames - 16}]} />
+          <Personagem aparencia={aluna} largura={700} poses={poses} expressoes={expressoes} falando={voz ? falando : [{inicio: 10, fim: durationInFrames - 16}]} />
         </div>
         {/* carteira */}
         <svg width={1080} height={1920} viewBox="0 0 1080 1920" style={{position: 'absolute', left: 0, top: 0}}>
@@ -147,6 +168,7 @@ export const CenaAluna: React.FC<{aluna: Aparencia; fala: string; rotulo: string
         <div style={{padding: '8px 20px', borderRadius: 999, background: 'rgba(11,21,48,0.8)', color: 'white', fontFamily, fontWeight: 800, fontSize: 24, letterSpacing: 2}}>{rotulo}</div>
       </div>
       <Fala texto={fala} inicio={8} fim={durationInFrames} x={90} y={390} largura={900} tamanho={50} rabicho="baixo" />
+      {audio}
     </Palco>
   );
 };

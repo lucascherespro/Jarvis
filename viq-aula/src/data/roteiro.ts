@@ -10,7 +10,7 @@ export const roteiroPadrao: Roteiro = {
   logoFile: '',
   mostrarZonaSegura: false,
   selo: 'PERSONAGENS FICTÍCIOS · AULA ILUSTRATIVA',
-  tempos: {abertura: 150, licao1: 270, aluna1: 90, licao2: 300, aluna2: 90, licao3: 360, resumo: 270, pergunta: 90, tarefa: 180, transicao: 8},
+  tempos: {abertura: 150, licao1: 270, aluna1: 105, licao2: 300, aluna2: 90, licao3: 360, resumo: 300, pergunta: 90, tarefa: 180, transicao: 8},
 
   abertura: {
     etiqueta: 'AULA RÁPIDA · 1 MINUTO',
@@ -53,7 +53,7 @@ export const roteiroPadrao: Roteiro = {
   resumo: {
     titulo: 'Resumo da aula',
     itens: ['Responde na hora, até de madrugada', 'Tira dúvidas de preço e procedimento', 'Mostra horários e agenda', 'Você foca em atender'],
-    fala: {texto: 'Anotou? É isso que a VIQ faz pela sua clínica.', inicio: 150, fim: 270},
+    fala: {texto: 'Anotou? É isso que a VIQ faz pela sua clínica.', inicio: 244, fim: 300},
   },
 
   pergunta: {fala: 'Professora, como eu coloco isso na minha clínica?', rotulo: 'ALUNA · DONA DE CLÍNICA'},
